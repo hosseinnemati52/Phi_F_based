@@ -376,6 +376,7 @@ int main()
     vector<double> cellFy(N_UpperLim); // force y
     vector<double> cellTheta(N_UpperLim); // self-propulsion direction of cells, \in [0, 2*pi]
 
+    vector<double> cellJ(N_UpperLim); // input flux of fitness
     vector<double> cellPhi(N_UpperLim); // phase in cell cycle, \in [0, 2*pi]
     vector<int> cellState(N_UpperLim); // Cell state : {cycling:CYCLING_STATE, G1_arr:G1_ARR_STATE, G0:G0_STATE, differentiated:DIFF_STATE, apop:APOP_STATE, does not exist: 0}
     // vector<double> cellOmega(N_UpperLim); // cell fitness. Changes by the game. equals to d phi / dt for cycling cells
@@ -440,6 +441,7 @@ int main()
     double tLastSampling = 0.0;
     int bunchInd = 1;
     double Fx, Fy, F; // these are forces
+    double J_input_real, J_input_imag;
     int cellC_1, cellC_2;
     double distance, distance2; // distance2 means distance^2
     double delta_x, delta_y; // that of 2 minus that of 1
@@ -454,7 +456,6 @@ int main()
     double max_interaction_r2, max_interaction_r; // maximum interaction distance, and its square.
     max_interaction_r =  (max(R_cut_coef_force, R_cut_coef_game)) * 2.0 * (*std::max_element(typeR2PI.begin(), typeR2PI.end()));
     max_interaction_r2 = max_interaction_r * max_interaction_r;
-    double gain_cell_1_real, gain_cell_1_imag;
     double gain_noise_real, gain_noise_imag;
     int int_rand_1, int_rand_2;
     double uniform_rand_1, uniform_rand_2, gauss_rand_1, gauss_rand_2; // for Box-Muller transform
@@ -468,6 +469,10 @@ int main()
     vector<int> cellStateUpdated(N_UpperLim); // Cell state Updated values: {cycling:CYCLING_STATE, G1_arr:G1_ARR_STATE, G0:G0_STATE, differentiated:DIFF_STATE, apop:APOP_STATE, does not exist: 0}
     for (cellC_1 = 0; cellC_1 < N_UpperLim; cellC_1++) // initializing: setting everything to zero
         {
+            cellFx[cellC_1] = 0.0;
+            cellFy[cellC_1] = 0.0;
+            cellJ[cellC_1] = 0.0;
+
             cellFitnessUpdated[cellC_1][0] = 0.0;
             cellFitnessUpdated[cellC_1][1] = 0.0;
 
@@ -481,13 +486,15 @@ int main()
     /////// SIMULATION LOOP /////////////
     while (t < maxTime)
     {
-        // setting forces to zero
+        // setting forces, and fluxes to zero
         for (cellC_1 = 0; cellC_1 < NCells; cellC_1++)
         {
             cellFx[cellC_1]= 0.0;
             cellFy[cellC_1]= 0.0;
+            cellJ[cellC_1] = 0.0;
+            cellSync[cellC_1] = 0.0;
         }
-        // setting forces to zero
+        // setting forces, and fluxes to zero
         
         // calculating Fx , Fy, and Updated fitnesses, without changing X, Y, Vx, Vy, and fitnesses
         for (cellC_1 = 0; cellC_1 < NCells; cellC_1++) // loop on cellC_1
@@ -496,7 +503,7 @@ int main()
 
             // cellOmega[cellC_1] = typeOmega0[cellType_1];
             // cellOmega[cellC_1] = typeFit0[cellType_1];
-            KuramotoTerm = 0.0;
+            // KuramotoTerm = 0.0;
 
             for (cellC_2 = cellC_1 + 1 ; cellC_2 < NCells; cellC_2++) // loop on cellC_2, for interactions (force and game)
             {
@@ -541,7 +548,7 @@ int main()
                     }
                     /////////// Forces ////////////////
 
-                    /////////// Game-interaction ////////////////
+                    /////////// Game- and Sync interactions ////////////////
                     R_cut_game = R_cut_coef_game * (cellR[cellC_2] + cellR[cellC_1]);
                     if (distance < R_cut_game ) // They do interact gamewise
                     {   
@@ -560,10 +567,16 @@ int main()
                         gain_noise_real = (GameNoiseSigma / dt) * gauss_rand_1;
                         // gain_noise_imag = 
 
-                        gain_cell_1_real = gain_noise_real + \
-                                           2;
-                                           INJAAAAAAAAAAAAAAAAAAAAAAAAAA
-                        // gain_cell_1_imag = 
+                        J_input_real     = gain_noise_real + \
+                                           typeTypePayOff_mat_real_C[cellType_1][cellType_2] + \
+                                           typeTypePayOff_mat_real_F1[cellType_1][cellType_2] * cellFitness[cellC_1][0] + \
+                                           typeTypePayOff_mat_real_F2[cellType_1][cellType_2] * cellFitness[cellC_2][0];
+                        
+                        cellJ[cellC_1] += J_input_real;
+                        cellJ[cellC_2] -= J_input_real;
+
+                        // cellJ_imag[cellC_1] += J_input_imag;
+                        // cellJ_imag[cellC_2] -= J_input_imag;
 
 
                         
@@ -572,9 +585,13 @@ int main()
                         // cellFitness[cellC_1][0] += (typeTypePayOff_mat_real[cellType_1][cellType_2] * dt) ;
                         // cellFitness[cellC_1][1] += (typeTypePayOff_mat_imag[cellType_1][cellType_2] * dt) ;
                         /////////// Game (Fitness update) ////////////////
-                        KuramotoTerm += (typeTypeEpsilon[cellType_1][cellType_2] * sin (cellPhi[cellC_2] - cellPhi[cellC_1]));
+                        // KuramotoTerm += (typeTypeEpsilon[cellType_1][cellType_2] * sin (cellPhi[cellC_2] - cellPhi[cellC_1]));
+
+                        SyncTerm = (typeTypeEpsilon[cellType_1][cellType_2] * (cellPhi[cellC_2] - cellPhi[cellC_1]));
+                        cellSync[cellC_1] += SyncTerm;
+                        cellSync[cellC_2] -= SyncTerm;
                     }
-                    /////////// Game-interaction ////////////////
+                    /////////// Game- and Sync interactions ////////////////
 
 
                 }
