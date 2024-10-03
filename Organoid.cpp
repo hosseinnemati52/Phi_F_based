@@ -500,6 +500,7 @@ int main()
         for (cellC_1 = 0; cellC_1 < NCells; cellC_1++) // loop on cellC_1
         {
             cellType_1 = cellType[cellC_1];
+            
 
             // cellOmega[cellC_1] = typeOmega0[cellType_1];
             // cellOmega[cellC_1] = typeFit0[cellType_1];
