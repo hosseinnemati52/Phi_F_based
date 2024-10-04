@@ -380,6 +380,7 @@ int main()
     vector<double> cellPhi(N_UpperLim); // phase in cell cycle, \in [0, 2*pi]
     vector<int> cellState(N_UpperLim); // Cell state : {cycling:CYCLING_STATE, G1_arr:G1_ARR_STATE, G0:G0_STATE, differentiated:DIFF_STATE, apop:APOP_STATE, does not exist: 0}
     // vector<double> cellOmega(N_UpperLim); // cell fitness. Changes by the game. equals to d phi / dt for cycling cells
+    vector<double> cellSync(N_UpperLim); // Kuramoto synchronization term for each cell
     
     vector<double> cellR(N_UpperLim); // The radius of each cell. It may change time to time.
     vector<double> cellArea(N_UpperLim); // The area of each cell. It may change time to time.
@@ -459,14 +460,30 @@ int main()
     double gain_noise_real, gain_noise_imag;
     int int_rand_1, int_rand_2;
     double uniform_rand_1, uniform_rand_2, gauss_rand_1, gauss_rand_2; // for Box-Muller transform
+    double SyncTerm;
 
-
+    // for identifying immediate neighbors
+    int NN_force[N_UpperLim][N_UpperLim];
+    int NN_game[N_UpperLim][N_UpperLim];
+    for (cellC_1 = 0; cellC_1 < N_UpperLim; cellC_1++)
+    {
+        for (cellC_2 = 0; cellC_2 < N_UpperLim; cellC_2++)
+        {
+            NN_force[cellC_1][cellC_2] = 0;
+            NN_game[cellC_1][cellC_2] = 0;
+        }
+    }
+    
     
     
     // Update Auxiliary properties vectors
     vector<vector<double>> cellFitnessUpdated(N_UpperLim, vector<double>(2)); // This stores the updated values of fitness of cells (Real and Imaginary parts).
     vector<double> cellPhiUpdated(N_UpperLim); // Updated phases in cell cycle, \in [0, 2*pi]
     vector<int> cellStateUpdated(N_UpperLim); // Cell state Updated values: {cycling:CYCLING_STATE, G1_arr:G1_ARR_STATE, G0:G0_STATE, differentiated:DIFF_STATE, apop:APOP_STATE, does not exist: 0}
+
+    vector<double> cellXUpdated(N_UpperLim); // Updated X
+    vector<double> cellYUpdated(N_UpperLim); // Updated Y
+
     for (cellC_1 = 0; cellC_1 < N_UpperLim; cellC_1++) // initializing: setting everything to zero
         {
             cellFx[cellC_1] = 0.0;
@@ -479,6 +496,9 @@ int main()
             cellPhiUpdated[cellC_1] = 0.0;
 
             cellStateUpdated[cellC_1] = 0;
+
+            cellXUpdated[cellC_1] = 0.0;
+            cellYUpdated[cellC_1] = 0.0;
         }
     // Update Auxiliary properties vectors
 
@@ -486,22 +506,20 @@ int main()
     /////// SIMULATION LOOP /////////////
     while (t < maxTime)
     {
-        // setting forces, and fluxes to zero
-        for (cellC_1 = 0; cellC_1 < NCells; cellC_1++)
-        {
-            cellFx[cellC_1]= 0.0;
-            cellFy[cellC_1]= 0.0;
-            cellJ[cellC_1] = 0.0;
-            cellSync[cellC_1] = 0.0;
-        }
-        // setting forces, and fluxes to zero
+        // // setting forces, and fluxes to zero
+        // for (cellC_1 = 0; cellC_1 < NCells; cellC_1++)
+        // {
+        //     cellFx[cellC_1]= 0.0;
+        //     cellFy[cellC_1]= 0.0;
+        //     cellJ[cellC_1] = 0.0;
+        //     cellSync[cellC_1] = 0.0;
+        // }
+        // // setting forces, and fluxes to zero
         
         // calculating Fx , Fy, and Updated fitnesses, without changing X, Y, Vx, Vy, and fitnesses
         for (cellC_1 = 0; cellC_1 < NCells; cellC_1++) // loop on cellC_1
         {
             cellType_1 = cellType[cellC_1];
-
-            ghashi
 
             // cellOmega[cellC_1] = typeOmega0[cellType_1];
             // cellOmega[cellC_1] = typeFit0[cellType_1];
@@ -516,14 +534,17 @@ int main()
 
                 if (distance2 > max_interaction_r2) // if the distance is larger than the maximum interaction distance, do nothing and go to the next cellC_2. No mutual interaction!
                 {
-                    continue;
+                    NN_force[cellC_1][cellC_2] = 0;
+                    NN_force[cellC_2][cellC_1] = 0;
+                    NN_game[cellC_1][cellC_2] = 0;
+                    NN_game[cellC_2][cellC_1] = 0;
                 }
                 else // if (distance2 <= max_interaction_r2), they MAY interact. 
                 {
                     distance = pow(distance2, 0.5);
 
                     R_cut_force = R_cut_coef_force * (cellR[cellC_2] + cellR[cellC_1]);
-                    R_eq =   R_eq_coef * (cellR[cellC_2] + cellR[cellC_1]);
+                    // R_eq =   R_eq_coef * (cellR[cellC_2] + cellR[cellC_1]);
 
                     cellType_2 = cellType[cellC_2];
 
@@ -531,22 +552,30 @@ int main()
                     if (distance < R_cut_force ) // They do interact forcewise
                     {
                         
-                        if (distance < R_eq )
-                        {
-                            F = typeTypeF_rep_max[cellType_1][cellType_2] * (distance - R_eq) / R_eq;
-                        } else
-                        {
-                            F = typeTypeF_abs_max[cellType_1][cellType_2] * (distance - R_eq) / (R_cut_force - R_eq);
-                        }
+                        NN_force[cellC_1][cellC_2] = 1;
+                        NN_force[cellC_2][cellC_1] = 1;
+
+                        // if (distance < R_eq )
+                        // {
+                        //     F = typeTypeF_rep_max[cellType_1][cellType_2] * (distance - R_eq) / R_eq;
+                        // } else
+                        // {
+                        //     F = typeTypeF_abs_max[cellType_1][cellType_2] * (distance - R_eq) / (R_cut_force - R_eq);
+                        // }
                         
-                        FaddTermX = ( F * (delta_x / distance)  + typeTypeGammaCC[cellType_1][cellType_2] * (cellVx[cellC_2] - cellVx[cellC_1]) );
-                        FaddTermY = ( F * (delta_y / distance)  + typeTypeGammaCC[cellType_1][cellType_2] * (cellVy[cellC_2] - cellVy[cellC_1]) );
+                        // FaddTermX = ( F * (delta_x / distance)  + typeTypeGammaCC[cellType_1][cellType_2] * (cellVx[cellC_2] - cellVx[cellC_1]) );
+                        // FaddTermY = ( F * (delta_y / distance)  + typeTypeGammaCC[cellType_1][cellType_2] * (cellVy[cellC_2] - cellVy[cellC_1]) );
 
-                        cellFx[cellC_1] += FaddTermX;
-                        cellFy[cellC_1] += FaddTermY;
+                        // cellFx[cellC_1] += FaddTermX;
+                        // cellFy[cellC_1] += FaddTermY;
 
-                        cellFx[cellC_2] -= FaddTermX;
-                        cellFy[cellC_2] -= FaddTermY;
+                        // cellFx[cellC_2] -= FaddTermX;
+                        // cellFy[cellC_2] -= FaddTermY;
+                    }
+                    else
+                    {
+                        NN_force[cellC_1][cellC_2] = 0;
+                        NN_force[cellC_2][cellC_1] = 0;
                     }
                     /////////// Forces ////////////////
 
@@ -554,6 +583,13 @@ int main()
                     R_cut_game = R_cut_coef_game * (cellR[cellC_2] + cellR[cellC_1]);
                     if (distance < R_cut_game ) // They do interact gamewise
                     {   
+                        
+                        NN_game[cellC_1][cellC_2] = 1;
+                        NN_game[cellC_2][cellC_1] = 1;
+
+                        SyncTerm = (typeTypeEpsilon[cellType_1][cellType_2] * (cellPhi[cellC_2] - cellPhi[cellC_1]));
+                        cellSync[cellC_1] += SyncTerm;
+                        cellSync[cellC_2] -= SyncTerm;
 
                         int_rand_1 = mt_rand();
                         while(int_rand_1 == MT_MIN || int_rand_1 == MT_MAX){int_rand_1 = mt_rand();}
@@ -572,10 +608,10 @@ int main()
                         J_input_real     = gain_noise_real + \
                                            typeTypePayOff_mat_real_C[cellType_1][cellType_2] + \
                                            typeTypePayOff_mat_real_F1[cellType_1][cellType_2] * cellFitness[cellC_1][0] + \
-                                           typeTypePayOff_mat_real_F2[cellType_1][cellType_2] * cellFitness[cellC_2][0];
+                                           typeTypePayOff_mat_real_F2[cellType_1][cellType_2] * cellFitness[cellC_2][0]; // This flux goes INTO cellC_1
                         
-                        cellJ[cellC_1] += J_input_real;
-                        cellJ[cellC_2] -= J_input_real;
+                        cellJ[cellC_1] += J_input_real; // This flux goes INTO cellC_1
+                        cellJ[cellC_2] -= J_input_real; // This flux goes INTO cellC_2 (minus the upper one)
 
                         // cellJ_imag[cellC_1] += J_input_imag;
                         // cellJ_imag[cellC_2] -= J_input_imag;
@@ -588,31 +624,25 @@ int main()
                         // cellFitness[cellC_1][1] += (typeTypePayOff_mat_imag[cellType_1][cellType_2] * dt) ;
                         /////////// Game (Fitness update) ////////////////
                         // KuramotoTerm += (typeTypeEpsilon[cellType_1][cellType_2] * sin (cellPhi[cellC_2] - cellPhi[cellC_1]));
-
-                        SyncTerm = (typeTypeEpsilon[cellType_1][cellType_2] * (cellPhi[cellC_2] - cellPhi[cellC_1]));
-                        cellSync[cellC_1] += SyncTerm;
-                        cellSync[cellC_2] -= SyncTerm;
+                    } // end of "if (distance < R_cut_game )"
+                    else
+                    {
+                        NN_game[cellC_1][cellC_2] = 0;
+                        NN_game[cellC_2][cellC_1] = 0;
                     }
                     /////////// Game- and Sync interactions ////////////////
+                } // end of "if (distance2 > max_interaction_r2){} else {}" 
+            } // end of "for (cellC_2 = cellC_1 + 1 ; cellC_2 < NCells; cellC_2++)"
+
+            cellXUpdated[cellC_1] = cellX[cellC_1] + dt * cellVx[cellC_1];
+            cellYUpdated[cellC_1] = cellY[cellC_1] + dt * cellVy[cellC_1];
+
+            // Here, the phiUpdated must be calculated
+            // And RUpdated, AreaUpdated
+            INJAAAAAAAAAAAAAA
+            // Here, the phiUpdated must be calculated
 
 
-                }
-
-                
-
-                
-
-                
-                
-
-                
-                
-                
-
-                
-            }
-
-            
 
             /////////// delta Omega ////////////////
             if (cellType_1==0)
