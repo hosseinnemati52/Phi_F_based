@@ -501,7 +501,7 @@ int main()
         {
             cellType_1 = cellType[cellC_1];
 
-            ghash
+            ghashi
 
             // cellOmega[cellC_1] = typeOmega0[cellType_1];
             // cellOmega[cellC_1] = typeFit0[cellType_1];
