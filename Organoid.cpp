@@ -163,15 +163,21 @@ void initializer(const int N_UpperLim, int* NCellsPtr, vector<int>& NCellsPerTyp
                  const vector<double> typeR0, const vector<double> typeR2PI, 
                  vector<int>& cellType, vector<double>& cellX, vector<double>& cellY, 
                  vector<double>& cellVx, vector<double>& cellVy, 
-                 vector<double>& cellPhi, vector<int>& cellState, vector<double>& cellTheta, vector<double>& cellR, vector<double>& cellArea,
+                 vector<double>& cellPhi, vector<int>& cellState, vector<double>& cellTheta,
                  vector<vector<double>>& cellFitness, const vector<double>& typeFit0);
 
 void initial_read(const int N_UpperLim, int* NCellsPtr, vector<int>& NCellsPerType,
                  const vector<double> typeR0, const vector<double> typeR2PI, 
                  vector<int>& cellType, vector<double>& cellX, vector<double>& cellY, 
                  vector<double>& cellVx, vector<double>& cellVy, 
-                 vector<double>& cellPhi, vector<int>& cellState, vector<double>& cellTheta, vector<double>& cellR, vector<double>& cellArea,
+                 vector<double>& cellPhi, vector<int>& cellState, vector<double>& cellTheta,
                  vector<vector<double>>& cellFitness);
+
+void R_Area_calc(const int N_UpperLim, const int NCells, const int NTypes,
+                 const vector<double> typeR0, const vector<double> typeR2PI, 
+                 const vector<int>& cellType,
+                 const vector<double>& cellPhi, const vector<int>& cellState,
+                 vector<double>& cellR, vector<double>& cellArea);
 
 void writeIntVectorToFile(const std::vector<int>& vec, int NCells, const std::string& filename);
 
@@ -422,7 +428,7 @@ int main()
                 typeR0, typeR2PI, 
                 cellType, cellX, cellY, 
                 cellVx, cellVy, 
-                cellPhi, cellState, cellTheta, cellR, cellArea,
+                cellPhi, cellState, cellTheta,
                 cellFitness);
     } else if ( initConfig == "gen" )
     {
@@ -430,10 +436,14 @@ int main()
                  typeR0, typeR2PI, 
                  cellType, cellX, cellY, 
                  cellVx, cellVy, 
-                 cellPhi, cellState, cellTheta, cellR, cellArea,
+                 cellPhi, cellState, cellTheta,
                  cellFitness, typeFit0);
     }
-
+    R_Area_calc(N_UpperLim, NCells, NTypes,
+                typeR0, typeR2PI, 
+                cellType,
+                cellPhi, cellState,
+                cellR, cellArea); // cellR and cellArea are calculated. The others are const in the function.
     ///////////////// INITIALIZATION ////////////////////
 
     // double dt = 0.01;
@@ -506,20 +516,29 @@ int main()
     /////// SIMULATION LOOP /////////////
     while (t < maxTime)
     {
-        // // setting forces, and fluxes to zero
-        // for (cellC_1 = 0; cellC_1 < NCells; cellC_1++)
-        // {
-        //     cellFx[cellC_1]= 0.0;
-        //     cellFy[cellC_1]= 0.0;
-        //     cellJ[cellC_1] = 0.0;
-        //     cellSync[cellC_1] = 0.0;
-        // }
-        // // setting forces, and fluxes to zero
+
+        // setting forces, and fluxes to zero
+        for (cellC_1 = 0; cellC_1 < NCells; cellC_1++)
+        {
+
+
+
+            cellFx[cellC_1]= 0.0;
+            cellFy[cellC_1]= 0.0;
+            cellJ[cellC_1] = 0.0;
+            cellSync[cellC_1] = 0.0;
+        }
+        // setting forces, and fluxes to zero
         
         // calculating Fx , Fy, and Updated fitnesses, without changing X, Y, Vx, Vy, and fitnesses
         for (cellC_1 = 0; cellC_1 < NCells; cellC_1++) // loop on cellC_1
         {
             cellType_1 = cellType[cellC_1];
+            
+            // cellXUpdateed, cellYUpdated
+            cellXUpdated[cellC_1] = cellX[cellC_1] + dt * cellVx[cellC_1];
+            cellYUpdated[cellC_1] = cellY[cellC_1] + dt * cellVy[cellC_1];
+            // cellXUpdateed, cellYUpdated
 
             // cellOmega[cellC_1] = typeOmega0[cellType_1];
             // cellOmega[cellC_1] = typeFit0[cellType_1];
@@ -583,14 +602,18 @@ int main()
                     R_cut_game = R_cut_coef_game * (cellR[cellC_2] + cellR[cellC_1]);
                     if (distance < R_cut_game ) // They do interact gamewise
                     {   
-                        
+                        //
                         NN_game[cellC_1][cellC_2] = 1;
                         NN_game[cellC_2][cellC_1] = 1;
+                        //
 
+                        // Kuramoto
                         SyncTerm = (typeTypeEpsilon[cellType_1][cellType_2] * (cellPhi[cellC_2] - cellPhi[cellC_1]));
                         cellSync[cellC_1] += SyncTerm;
                         cellSync[cellC_2] -= SyncTerm;
+                        //
 
+                        // Game fluxes
                         int_rand_1 = mt_rand();
                         while(int_rand_1 == MT_MIN || int_rand_1 == MT_MAX){int_rand_1 = mt_rand();}
                         int_rand_2 = mt_rand();
@@ -615,7 +638,7 @@ int main()
 
                         // cellJ_imag[cellC_1] += J_input_imag;
                         // cellJ_imag[cellC_2] -= J_input_imag;
-
+                        //
 
                         
                         // cellFitness[cellC_2][0] += (typeTypePayOff_mat_real[cellType_2][cellType_1] * dt) ;
@@ -634,12 +657,13 @@ int main()
                 } // end of "if (distance2 > max_interaction_r2){} else {}" 
             } // end of "for (cellC_2 = cellC_1 + 1 ; cellC_2 < NCells; cellC_2++)"
 
-            cellXUpdated[cellC_1] = cellX[cellC_1] + dt * cellVx[cellC_1];
-            cellYUpdated[cellC_1] = cellY[cellC_1] + dt * cellVy[cellC_1];
+            
 
             // Here, the phiUpdated must be calculated
-            // And RUpdated, AreaUpdated
-            INJAAAAAAAAAAAAAA
+            cellPhiUpdated[cellC_1] = cellPhi[cellC_1] + dt * ( \
+                                                                cellFitness[cellC_1][0] + \
+                                                                cellJ[cellC_1] \
+                                                              );
             // Here, the phiUpdated must be calculated
 
 
@@ -815,7 +839,7 @@ int main()
                 writeDoubleVectorToFile(cellVx, NCells, loadFolderName+"/Vx_LS.txt");
                 writeDoubleVectorToFile(cellVy, NCells, loadFolderName+"/Vy_LS.txt");
                 writeDoubleVectorToFile(cellPhi, NCells, loadFolderName+"/Phi_LS.txt");
-                writeDoubleVectorToFile(cellR, NCells, loadFolderName+"/R_LS.txt");
+                // writeDoubleVectorToFile(cellR, NCells, loadFolderName+"/R_LS.txt");
                 writeDoubleMatrixToFile(cellFitness, NCells, 2,  loadFolderName+"/Fitness_LS.txt");
 
                 // writing the final state of random generator
@@ -1148,7 +1172,7 @@ void initializer(const int N_UpperLim, int* NCellsPtr, vector<int>& NCellsPerTyp
                  const vector<double> typeR0, const vector<double> typeR2PI, 
                  vector<int>& cellType, vector<double>& cellX, vector<double>& cellY, 
                  vector<double>& cellVx, vector<double>& cellVy, 
-                 vector<double>& cellPhi, vector<int>& cellState, vector<double>& cellTheta, vector<double>& cellR, vector<double>& cellArea,
+                 vector<double>& cellPhi, vector<int>& cellState, vector<double>& cellTheta,
                  vector<vector<double>>& cellFitness, const vector<double>& typeFit0)
 {
     NCellsPerType[0] = 500;
@@ -1162,6 +1186,8 @@ void initializer(const int N_UpperLim, int* NCellsPtr, vector<int>& NCellsPerTyp
     
     int random_int;
     float random_float;
+
+    double cellArea_val, cellR_val;
 
     vector<double> A_tot_sq(2);
 
@@ -1180,9 +1206,9 @@ void initializer(const int N_UpperLim, int* NCellsPtr, vector<int>& NCellsPerTyp
         cellState[cellC] = CYCLING_STATE; // all the cells start from cycling state
 
         // cellArea[cellC] = A_min + (A_max - A_min) * 0.5 * (1 - cos(cellPhi[cellC]/2.0)); // cosine area independency to phi
-        cellArea[cellC] = A_min + (A_max - A_min) * cellPhi[cellC] / (2 * PI); // linear area independency to phi
-        cellR[cellC] = pow(cellArea[cellC] / PI, 0.5);
-        A_tot_sq[typeInd] += 4 * cellR[cellC] * cellR[cellC];
+        cellArea_val = A_min + (A_max - A_min) * cellPhi[cellC] / (2 * PI); // linear area independency to phi
+        cellR_val = pow(cellArea_val / PI, 0.5);
+        A_tot_sq[typeInd] += 4 * cellR_val * cellR_val;
 
         random_float = static_cast<float>(std::rand()) / static_cast<float>(RAND_MAX);
         cellTheta[cellC] = random_float * (2*PI);
@@ -1209,9 +1235,9 @@ void initializer(const int N_UpperLim, int* NCellsPtr, vector<int>& NCellsPerTyp
         cellState[cellC] = CYCLING_STATE; // all the cells start from cycling state
 
         // cellArea[cellC] = A_min + (A_max - A_min) * 0.5 * (1 - cos(cellPhi[cellC]/2.0));  // cosine area independency to phi
-        cellArea[cellC] = A_min + (A_max - A_min) * cellPhi[cellC] / (2 * PI); // linear area independency to phi
-        cellR[cellC] = pow(cellArea[cellC] / PI, 0.5);
-        A_tot_sq[typeInd] += 4 * cellR[cellC] * cellR[cellC];
+        cellArea_val = A_min + (A_max - A_min) * cellPhi[cellC] / (2 * PI); // linear area independency to phi
+        cellR_val = pow(cellArea_val / PI, 0.5);
+        A_tot_sq[typeInd] += 4 * cellR_val * cellR_val;
 
         random_float = static_cast<float>(std::rand()) / static_cast<float>(RAND_MAX);
         cellTheta[cellC] = random_float * (2*PI);
@@ -1230,8 +1256,8 @@ void initializer(const int N_UpperLim, int* NCellsPtr, vector<int>& NCellsPerTyp
         cellPhi[cellC] = 0;
         cellState[cellC] = 0;
 
-        cellArea[cellC] = 0;
-        cellR[cellC] = 0;
+        // cellArea[cellC] = 0;
+        // cellR[cellC] = 0;
         cellTheta[cellC] = 0;
 
         cellX[cellC] = 0;
@@ -1314,7 +1340,7 @@ void initializer(const int N_UpperLim, int* NCellsPtr, vector<int>& NCellsPerTyp
     writeDoubleVectorToFile(cellVy, NCells, "init/cellVy_init.txt");
     writeDoubleVectorToFile(cellPhi, NCells, "init/cellPhi_init.txt");
     writeIntVectorToFile(cellState, NCells, "init/cellState_init.txt");
-    writeDoubleVectorToFile(cellR, NCells, "init/cellR_init.txt");
+    // writeDoubleVectorToFile(cellR, NCells, "init/cellR_init.txt");
     writeDoubleVectorToFile(cellTheta, NCells, "init/cellTheta_init.txt");
     writeDoubleMatrixToFile(cellFitness, NCells, 2,  "init/cellFitness_init.txt");
 }
@@ -1323,7 +1349,7 @@ void initial_read(const int N_UpperLim, int* NCellsPtr, vector<int>& NCellsPerTy
                  const vector<double> typeR0, const vector<double> typeR2PI, 
                  vector<int>& cellType, vector<double>& cellX, vector<double>& cellY, 
                  vector<double>& cellVx, vector<double>& cellVy, 
-                 vector<double>& cellPhi, vector<int>& cellState, vector<double>& cellTheta, vector<double>& cellR, vector<double>& cellArea,
+                 vector<double>& cellPhi, vector<int>& cellState, vector<double>& cellTheta,
                  vector<vector<double>>& cellFitness)
 {
     
@@ -1335,13 +1361,13 @@ void initial_read(const int N_UpperLim, int* NCellsPtr, vector<int>& NCellsPerTy
     vector<double> cellPhi_read;
     vector<int> cellState_read;
     vector<double> cellTheta_read;
-    vector<double> cellR_read;
+    // vector<double> cellR_read;
     vector<vector<double>> cellFitness_read;
 
     readIntVectorFromFile("init/Type_init.txt", cellType_read);
     readDoubleVectorFromFile("init/X_init.txt", cellX_read);
     readDoubleVectorFromFile("init/Y_init.txt", cellY_read);
-    readDoubleVectorFromFile("init/R_init.txt", cellR_read);
+    // readDoubleVectorFromFile("init/R_init.txt", cellR_read);
     readDoubleVectorFromFile("init/Vx_init.txt", cellVx_read);
     readDoubleVectorFromFile("init/Vy_init.txt", cellVy_read);
     readDoubleVectorFromFile("init/Phi_init.txt", cellPhi_read);
@@ -1360,7 +1386,7 @@ void initial_read(const int N_UpperLim, int* NCellsPtr, vector<int>& NCellsPerTy
         cellType[cellC] = cellType_read[cellC];
         cellX[cellC] = cellX_read[cellC];
         cellY[cellC] = cellY_read[cellC];
-        cellR[cellC] = cellR_read[cellC];
+        // cellR[cellC] = cellR_read[cellC];
         cellVx[cellC] = cellVx_read[cellC];
         cellVy[cellC] = cellVy_read[cellC];
         cellPhi[cellC] = cellPhi_read[cellC];
@@ -1373,9 +1399,46 @@ void initial_read(const int N_UpperLim, int* NCellsPtr, vector<int>& NCellsPerTy
 
         NCellsPerType[cellType[cellC]]++;
 
-        cellArea[cellC] = (PI * cellR[cellC] * cellR[cellC]);
+        // cellArea[cellC] = (PI * cellR[cellC] * cellR[cellC]);
     }
 
+}
+
+void R_Area_calc(const int N_UpperLim, const int NCells, const int NTypes,
+                 const vector<double> typeR0, const vector<double> typeR2PI, 
+                 const vector<int>& cellType,
+                 const vector<double>& cellPhi, const vector<int>& cellState,
+                 vector<double>& cellR, vector<double>& cellArea)
+{   
+
+    for (int cellC = 0; cellC < N_UpperLim; cellC++) // initial zero-assignment
+    {
+        cellArea[cellC] = 0.0;
+        cellR[cellC] = 0.0;
+    }
+
+    vector<double> A_min(NTypes);
+    vector<double> A_max(NTypes);
+    
+    for (int type_C = 0; type_C < NTypes; type_C++)
+    {
+        A_min[type_C] = PI * typeR0[type_C] * typeR0[type_C];
+        A_max[type_C] = PI * typeR2PI[type_C] * typeR2PI[type_C];
+    }
+
+    for (int cellC = 0; cellC < NCells; cellC++)
+    {
+        if (cellState[cellC] == APOP_STATE) // the cell is dead
+        {
+            cellArea[cellC] = 0.0;
+            cellR[cellC] = 0.0;
+        }
+        else // the cell is alive
+        {
+            cellArea[cellC] = A_min[cellType[cellC]] + (A_max[cellType[cellC]] - A_min[cellType[cellC]]) * cellPhi[cellC] / (2 * PI); // linear area independency to phi
+            cellR[cellC] = pow(cellArea[cellC] / PI, 0.5);
+        }
+    }
 }
 
 void writeIntVectorToFile(const std::vector<int>& vec, int NCells, const std::string& filename) {
