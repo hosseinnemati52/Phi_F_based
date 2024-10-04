@@ -683,36 +683,87 @@ int main()
 
 
 
-            /////////// delta Omega ////////////////
-            if (cellType_1==0)
-            {
-                if (cellFitness[cellC_1][0]>=0.0)
-                {
-                    deltaOmega = 0.0;
-                } else if (cellFitness[cellC_1][0] < 0.0)
-                {
-                    // deltaOmega = (typeOmegaLim[cellType_1]- typeOmega0[cellType_1]) * (1.0 - exp(cellFitness[cellC_1][0]));
-                }
+            // /////////// delta Omega ////////////////
+            // if (cellType_1==0)
+            // {
+            //     if (cellFitness[cellC_1][0]>=0.0)
+            //     {
+            //         deltaOmega = 0.0;
+            //     } else if (cellFitness[cellC_1][0] < 0.0)
+            //     {
+            //         // deltaOmega = (typeOmegaLim[cellType_1]- typeOmega0[cellType_1]) * (1.0 - exp(cellFitness[cellC_1][0]));
+            //     }
 
 
-            } else if (cellType_1==1)
-            {
-                if (cellFitness[cellC_1][0] <= 0.0)
-                {
-                    deltaOmega = 0.0;
-                } else if (cellFitness[cellC_1][0] > 0.0)
-                {
-                    // deltaOmega = (typeOmegaLim[cellType_1]- typeOmega0[cellType_1]) * (1.0 - exp(-cellFitness[cellC_1][0]));
-                }
-            }
+            // } else if (cellType_1==1)
+            // {
+            //     if (cellFitness[cellC_1][0] <= 0.0)
+            //     {
+            //         deltaOmega = 0.0;
+            //     } else if (cellFitness[cellC_1][0] > 0.0)
+            //     {
+            //         // deltaOmega = (typeOmegaLim[cellType_1]- typeOmega0[cellType_1]) * (1.0 - exp(-cellFitness[cellC_1][0]));
+            //     }
+            // }
 
-            cellOmega[cellC_1] += deltaOmega;
-            cellOmega[cellC_1] += KuramotoTerm;
-            /// !!! Updating cellPhi must be the final step of loop, because it may change the NCells !!! ///
+            // cellOmega[cellC_1] += deltaOmega;
+            // cellOmega[cellC_1] += KuramotoTerm;
+            // /// !!! Updating cellPhi must be the final step of loop, because it may change the NCells !!! ///
             
-            /////////// delta Omega ////////////////
+            // /////////// delta Omega ////////////////
             
-        }
+        } // the end of "for (cellC_1 = 0; cellC_1 < NCells; cellC_1++)"
+
+
+
+        // These two for loops are for calculating center-to-center force terms
+        for (cellC_1 = 0; cellC_1 < NCells; cellC_1++) // loop on cellC_1
+        {
+            cellType_1 = cellType[cellC_1];
+
+            for (cellC_2 = cellC_1 + 1 ; cellC_2 < NCells; cellC_2++) // loop on cellC_2, for interactions (force and game)
+            {
+                cellType_2 = cellType[cellC_2];
+
+                if (NN_force[cellC_1][cellC_2])
+                {
+                    
+                    delta_x = cellXUpdated[cellC_2] - cellXUpdated[cellC_1];
+                    delta_y = cellYUpdated[cellC_2] - cellYUpdated[cellC_1];
+                    distance = pow( (delta_x * delta_x + delta_y * delta_y) , 0.5);
+
+                    R_eq =   R_eq_coef * (cellRUpdated[cellC_2] + cellRUpdated[cellC_1]);
+
+                    if (distance < R_eq )
+                    {
+                        F = typeTypeF_rep_max[cellType_1][cellType_2] * (distance - R_eq) / R_eq;
+                    } else
+                    {
+                        F = typeTypeF_abs_max[cellType_1][cellType_2] * (distance - R_eq) / (R_cut_force - R_eq);
+                    }
+                    
+                    FaddTermX =  F * (delta_x / distance);
+                    FaddTermY =  F * (delta_y / distance);
+
+                    cellFx[cellC_1] += FaddTermX;
+                    cellFy[cellC_1] += FaddTermY;
+
+                    cellFx[cellC_2] -= FaddTermX;
+                    cellFy[cellC_2] -= FaddTermY;
+
+                } // the end of "if (NN_force[cellC_1][cellC_2])"
+
+            } // the end of "for (cellC_2 = cellC_1 + 1 ; cellC_2 < NCells; cellC_2++)"
+
+
+            // Here, the V(t+dt) for cellC_1 is calculated
+            cellVx[cellC_1] = (1.0 / )
+            gamma cc is not constant.
+            // Here, the V(t+dt) for cellC_1 is calculated
+
+        } // the end of "for (cellC_1 = 0; cellC_1 < NCells; cellC_1++)"
+        // These two for loops are for calculating center-to-center force terms
+
 
         newBornCells = 0;
         newBornInd = NCells;
