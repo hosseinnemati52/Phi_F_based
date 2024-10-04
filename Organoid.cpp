@@ -461,7 +461,8 @@ int main()
     double deltaOmega, KuramotoTerm;
     double FaddTermX, FaddTermY;
     int newBornCells, newBornInd;
-    double A_min, A_max;
+    // double A_min, A_max;
+    double cellAreaUpdate_val;
     double rand_divison_angle;
     double daughterX_1, daughterY_1, daughterX_2, daughterY_2;
     double max_interaction_r2, max_interaction_r; // maximum interaction distance, and its square.
@@ -489,6 +490,7 @@ int main()
     // Update Auxiliary properties vectors
     vector<vector<double>> cellFitnessUpdated(N_UpperLim, vector<double>(2)); // This stores the updated values of fitness of cells (Real and Imaginary parts).
     vector<double> cellPhiUpdated(N_UpperLim); // Updated phases in cell cycle, \in [0, 2*pi]
+    vector<double> cellRUpdated(N_UpperLim); // Updated Radius of the cells
     vector<int> cellStateUpdated(N_UpperLim); // Cell state Updated values: {cycling:CYCLING_STATE, G1_arr:G1_ARR_STATE, G0:G0_STATE, differentiated:DIFF_STATE, apop:APOP_STATE, does not exist: 0}
 
     vector<double> cellXUpdated(N_UpperLim); // Updated X
@@ -498,14 +500,16 @@ int main()
         {
             cellFx[cellC_1] = 0.0;
             cellFy[cellC_1] = 0.0;
+
             cellJ[cellC_1] = 0.0;
 
             cellFitnessUpdated[cellC_1][0] = 0.0;
             cellFitnessUpdated[cellC_1][1] = 0.0;
 
             cellPhiUpdated[cellC_1] = 0.0;
+            cellRUpdated[cellC_1] = 0.0;
 
-            cellStateUpdated[cellC_1] = 0;
+            // cellStateUpdated[cellC_1] = 0;
 
             cellXUpdated[cellC_1] = 0.0;
             cellYUpdated[cellC_1] = 0.0;
@@ -517,11 +521,13 @@ int main()
     while (t < maxTime)
     {
 
-        // setting forces, and fluxes to zero
+        // This loop for: Non-interactive updates, zero assighnment of interactive mediate tools.
         for (cellC_1 = 0; cellC_1 < NCells; cellC_1++)
         {
-
-
+            // cellXUpdateed, cellYUpdated
+            cellXUpdated[cellC_1] = cellX[cellC_1] + dt * cellVx[cellC_1];
+            cellYUpdated[cellC_1] = cellY[cellC_1] + dt * cellVy[cellC_1];
+            // cellXUpdateed, cellYUpdated
 
             cellFx[cellC_1]= 0.0;
             cellFy[cellC_1]= 0.0;
@@ -534,11 +540,6 @@ int main()
         for (cellC_1 = 0; cellC_1 < NCells; cellC_1++) // loop on cellC_1
         {
             cellType_1 = cellType[cellC_1];
-            
-            // cellXUpdateed, cellYUpdated
-            cellXUpdated[cellC_1] = cellX[cellC_1] + dt * cellVx[cellC_1];
-            cellYUpdated[cellC_1] = cellY[cellC_1] + dt * cellVy[cellC_1];
-            // cellXUpdateed, cellYUpdated
 
             // cellOmega[cellC_1] = typeOmega0[cellType_1];
             // cellOmega[cellC_1] = typeFit0[cellType_1];
@@ -567,7 +568,7 @@ int main()
 
                     cellType_2 = cellType[cellC_2];
 
-                    /////////// Forces ////////////////
+                    /////////// Cell-cell friction Forces ////////////////
                     if (distance < R_cut_force ) // They do interact forcewise
                     {
                         
@@ -585,18 +586,21 @@ int main()
                         // FaddTermX = ( F * (delta_x / distance)  + typeTypeGammaCC[cellType_1][cellType_2] * (cellVx[cellC_2] - cellVx[cellC_1]) );
                         // FaddTermY = ( F * (delta_y / distance)  + typeTypeGammaCC[cellType_1][cellType_2] * (cellVy[cellC_2] - cellVy[cellC_1]) );
 
-                        // cellFx[cellC_1] += FaddTermX;
-                        // cellFy[cellC_1] += FaddTermY;
+                        FaddTermX = typeTypeGammaCC[cellType_1][cellType_2] * (cellVx[cellC_2] - cellVx[cellC_1]) ;
+                        FaddTermY = typeTypeGammaCC[cellType_1][cellType_2] * (cellVy[cellC_2] - cellVy[cellC_1]) ;
 
-                        // cellFx[cellC_2] -= FaddTermX;
-                        // cellFy[cellC_2] -= FaddTermY;
+                        cellFx[cellC_1] += FaddTermX;
+                        cellFy[cellC_1] += FaddTermY;
+
+                        cellFx[cellC_2] -= FaddTermX;
+                        cellFy[cellC_2] -= FaddTermY;
                     }
                     else
                     {
                         NN_force[cellC_1][cellC_2] = 0;
                         NN_force[cellC_2][cellC_1] = 0;
                     }
-                    /////////// Forces ////////////////
+                    /////////// Cell-cell friction Forces ////////////////
 
                     /////////// Game- and Sync interactions ////////////////
                     R_cut_game = R_cut_coef_game * (cellR[cellC_2] + cellR[cellC_1]);
@@ -613,7 +617,7 @@ int main()
                         cellSync[cellC_2] -= SyncTerm;
                         //
 
-                        // Game fluxes
+                        // Game fitness fluxes
                         int_rand_1 = mt_rand();
                         while(int_rand_1 == MT_MIN || int_rand_1 == MT_MAX){int_rand_1 = mt_rand();}
                         int_rand_2 = mt_rand();
@@ -638,7 +642,7 @@ int main()
 
                         // cellJ_imag[cellC_1] += J_input_imag;
                         // cellJ_imag[cellC_2] -= J_input_imag;
-                        //
+                        // Game fitness fluxes
 
                         
                         // cellFitness[cellC_2][0] += (typeTypePayOff_mat_real[cellType_2][cellType_1] * dt) ;
@@ -659,12 +663,23 @@ int main()
 
             
 
-            // Here, the phiUpdated must be calculated
+            // The Updated versions of Phi, R, and Fitness of cellC_1 are calculated here
             cellPhiUpdated[cellC_1] = cellPhi[cellC_1] + dt * ( \
                                                                 cellFitness[cellC_1][0] + \
                                                                 cellJ[cellC_1] \
                                                               );
-            // Here, the phiUpdated must be calculated
+
+            cellFitnessUpdated[cellC_1][0] = cellFitness[cellC_1][0] + \
+                                             dt * ( \
+                                                        cellJ[cellC_1] + \
+                                                        (-1.0 / tau) * (cellFitness[cellC_1][0] - typeFit0[cellType_1])
+                                                    );
+
+            cellAreaUpdate_val = typeA_min[cellType_1] + (typeA_max[cellType_1] - typeA_min[cellType_1]) * cellPhiUpdated[cellC_1] / (2 * PI);
+            cellRUpdated[cellC_1] = pow(cellAreaUpdate_val / PI, 0.5);
+            // The Updated versions of Phi, R, and Fitness of cellC_1 are calculated here
+
+            
 
 
 
