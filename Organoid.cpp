@@ -212,6 +212,8 @@ void dataBunchWriter(const int NCells, \
 std::vector<std::vector<int>> IntTranspose(const std::vector<std::vector<int>>& matrix);
 
 std::vector<std::vector<double>> DoubleTranspose(const std::vector<std::vector<double>>& matrix);
+
+void writeFitnessToFile(const std::vector<std::vector<std::vector<double>>>& matrix, const int N_rows_desired, const int N_cols_desired, const std::string& filename);
 //////////////////////////////////////////////////////////////////////////
 ////////////////////////////// PROTOTYPES ////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -1801,6 +1803,43 @@ void writeDoubleMatrixToFile(const std::vector<std::vector<double>>& mat, const 
     std::cout << "Data written to file: " << filename << std::endl;
 }
 
+void writeFitnessToFile(const std::vector<std::vector<std::vector<double>>>& matrix, const int N_rows_desired, const int N_cols_desired, const std::string& filename) {
+    // std::ofstream outFile(filename);
+
+    // if (!outFile.is_open()) {
+    //     std::cerr << "Error opening file: " << filename << std::endl;
+    //     return;
+    // }
+
+    // outFile << std::fixed << std::setprecision(8);
+
+    int bunchLength = matrix.size();
+    int N_Rows = N_rows_desired;
+    int N_Cols = 2 * bunchLength;
+
+    vector<vector<double>> outlet_matrix(N_Rows, vector<double>(N_Cols));
+
+    int rowC, colC;
+    for (int i = 0; i < bunchLength; i++)
+    {
+        for (int j = 0; j < N_rows_desired; j++)
+        {
+            rowC = j;
+            colC = 2*i;
+            outlet_matrix[rowC][colC] = matrix[i][j][0];
+
+            rowC = j;
+            colC = 2*i+1;
+            outlet_matrix[rowC][colC] = matrix[i][j][1];
+        }
+        
+    }
+
+    writeDoubleMatrixToFile(outlet_matrix, N_Rows, N_Cols, filename);
+    
+
+}
+
 void readIntVectorFromFile(const std::string& filename, std::vector<int>& data) {
     std::ifstream file(filename);
     if (!file.is_open()) {
@@ -1943,6 +1982,8 @@ void dataBunchWriter(const int NCells, \
     int N_rows = NCells;
     int N_cols = tBunch.size();
 
+    int bunchLength = cellTypeBunch.size();
+
     writeDoubleVectorToFile(tBunch, NCells, "data/t_"+ to_string(saved_bunch_index) + ".txt");
     writeIntMatrixToFile(IntTranspose(cellTypeBunch), NCells, cellTypeBunch.size(), "data/Type_"+ to_string(saved_bunch_index) + ".txt");
     writeDoubleMatrixToFile(DoubleTranspose(cellXBunch), NCells, cellXBunch.size(), "data/X_"+ to_string(saved_bunch_index) + ".txt");
@@ -1950,6 +1991,8 @@ void dataBunchWriter(const int NCells, \
     writeDoubleMatrixToFile(DoubleTranspose(cellVxBunch), NCells, cellVxBunch.size(), "data/Vx_"+ to_string(saved_bunch_index) + ".txt");
     writeDoubleMatrixToFile(DoubleTranspose(cellVyBunch), NCells, cellVyBunch.size(), "data/Vy_"+ to_string(saved_bunch_index) + ".txt");
     writeDoubleMatrixToFile(DoubleTranspose(cellPhiBunch), NCells, cellPhiBunch.size(), "data/Phi_"+ to_string(saved_bunch_index) + ".txt");
+    Check_this_carefully:
+    writeFitnessToFile(cellFitnessBunch, NCells, bunchLength, "data/Fit_"+ to_string(saved_bunch_index) + ".txt");
     
 
 }
