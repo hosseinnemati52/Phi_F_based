@@ -39,6 +39,8 @@
 #define G0_STATE        (-2)
 #define DIFF_STATE      (-3)
 #define APOP_STATE      (-4)
+#define CA_CELL_TYPE    (1)
+#define WT_CELL_TYPE    (0)
 ///////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////#DEFINITIONS///////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////
@@ -380,7 +382,7 @@ int main()
     vector<double> cellVy(N_UpperLim);
     vector<double> cellFx(N_UpperLim); // force x
     vector<double> cellFy(N_UpperLim); // force y
-    vector<double> cellSigmaGammaCC(N_UpperLim); // The sum of \gamma_{cc} with neighbors, for each cell
+    // vector<double> cellSigmaGammaCC(N_UpperLim); // The sum of \gamma_{cc} with neighbors, for each cell
     vector<double> cellTheta(N_UpperLim); // self-propulsion direction of cells, \in [0, 2*pi]
 
     vector<double> cellJ(N_UpperLim); // input flux of fitness
@@ -462,7 +464,7 @@ int main()
     int cellType_1, cellType_2; // type of cell 1 and type of cell 2
     double deltaOmega, KuramotoTerm;
     double FaddTermX, FaddTermY, gammaCC_val;
-    int newBornCells, newBornInd;
+    int newBornCells, newBornInd, dyingCells;
     // double A_min, A_max;
     double cellAreaUpdate_val;
     double rand_divison_angle;
@@ -502,7 +504,7 @@ int main()
         {
             cellFx[cellC_1] = 0.0;
             cellFy[cellC_1] = 0.0;
-            cellSigmaGammaCC[cellC_1] = 0.0;
+            // cellSigmaGammaCC[cellC_1] = 0.0;
 
             cellJ[cellC_1] = 0.0;
 
@@ -536,7 +538,7 @@ int main()
 
             cellFx[cellC_1]= 0.0;
             cellFy[cellC_1]= 0.0;
-            cellSigmaGammaCC[cellC_1] = 0.0;
+            // cellSigmaGammaCC[cellC_1] = 0.0;
 
             cellJ[cellC_1] = 0.0;
             cellSync[cellC_1] = 0.0;
@@ -546,6 +548,16 @@ int main()
         // calculating Fx , Fy, and Updated fitnesses, without changing X, Y, Vx, Vy, and fitnesses
         for (cellC_1 = 0; cellC_1 < NCells; cellC_1++) // loop on cellC_1
         {
+
+            if (cellState[cellC_1] == APOP_STATE)
+            {
+                cellPhiUpdated[cellC_1] = cellPhi[cellC_1];
+                cellFitnessUpdated[cellC_1][0] = cellFitness[cellC_1][0];
+                cellRUpdated[cellC_1] = 0.0;
+
+                continue; // if the cell is already dead, there is nothing to do. Go to the next.
+            }
+            
             cellType_1 = cellType[cellC_1];
 
             // cellOmega[cellC_1] = typeOmega0[cellType_1];
@@ -554,6 +566,11 @@ int main()
 
             for (cellC_2 = cellC_1 + 1 ; cellC_2 < NCells; cellC_2++) // loop on cellC_2, for interactions (force and game)
             {
+
+                if (cellState[cellC_2] == APOP_STATE)
+                {
+                    continue; // if the cell is already dead, there is nothing to do. Go to the next.
+                }
                 
                 delta_x = cellX[cellC_2] - cellX[cellC_1];
                 delta_y = cellY[cellC_2] - cellY[cellC_1];
@@ -593,10 +610,10 @@ int main()
                         // FaddTermX = ( F * (delta_x / distance)  + typeTypeGammaCC[cellType_1][cellType_2] * (cellVx[cellC_2] - cellVx[cellC_1]) );
                         // FaddTermY = ( F * (delta_y / distance)  + typeTypeGammaCC[cellType_1][cellType_2] * (cellVy[cellC_2] - cellVy[cellC_1]) );
                         
-                        gammaCC_val = typeTypeGammaCC[cellType_1][cellType_2];
+                        // gammaCC_val = typeTypeGammaCC[cellType_1][cellType_2];
 
-                        FaddTermX = gammaCC_val * (cellVx[cellC_2] - cellVx[cellC_1]) ;
-                        FaddTermY = gammaCC_val * (cellVy[cellC_2] - cellVy[cellC_1]) ;
+                        FaddTermX = typeTypeGammaCC[cellType_1][cellType_2] * (cellVx[cellC_2] - cellVx[cellC_1]) ;
+                        FaddTermY = typeTypeGammaCC[cellType_1][cellType_2] * (cellVy[cellC_2] - cellVy[cellC_1]) ;
 
                         // FaddTermX = gammaCC_val * cellVx[cellC_2] ; // this way may not satisfy Newton's 3rd law
                         // FaddTermY = gammaCC_val * cellVy[cellC_2] ;
@@ -638,8 +655,8 @@ int main()
                         int_rand_2 = mt_rand();
                         while(int_rand_2 == MT_MIN || int_rand_2 == MT_MAX){int_rand_2 = mt_rand();}
 
-                        uniform_rand_1 = (((long double)(int_rand_1)-MT_MIN)/((long double)MT_MAX-MT_MIN));
-                        uniform_rand_2 = (((long double)(int_rand_2)-MT_MIN)/((long double)MT_MAX-MT_MIN));
+                        uniform_rand_1 = ((long double)(int_rand_1)-MT_MIN)/((long double)MT_MAX-MT_MIN);
+                        uniform_rand_2 = ((long double)(int_rand_2)-MT_MIN)/((long double)MT_MAX-MT_MIN);
 
                         gauss_rand_1 =  pow( (-2.0 * log(uniform_rand_1)) , 0.5) * cos(2.0 * PI * uniform_rand_2); // Box-Muller transform
                         // gauss_rand_2 = 
@@ -679,17 +696,23 @@ int main()
             
 
             // The Updated versions of Phi, R, and Fitness of cellC_1 are calculated here
-            cellPhiUpdated[cellC_1] = cellPhi[cellC_1] + dt * ( \
-                                                                cellFitness[cellC_1][0] + \
-                                                                cellJ[cellC_1] \
-                                                              );
-
             cellFitnessUpdated[cellC_1][0] = cellFitness[cellC_1][0] + \
                                              dt * ( \
                                                         cellJ[cellC_1] + \
                                                         (-1.0 / tau) * (cellFitness[cellC_1][0] - typeFit0[cellType_1])
                                                     );
-
+            
+            if (cellState[cellC_1] == CYCLING_STATE) // Phi is updated only if the cell is in cycling state.
+            {
+                cellPhiUpdated[cellC_1] = cellPhi[cellC_1] + dt * ( \
+                                                                cellFitness[cellC_1][0] + \
+                                                                cellSync[cellC_1] \
+                                                              );
+            }
+            else
+            {
+                cellPhiUpdated[cellC_1] = cellPhi[cellC_1];
+            }
             cellAreaUpdate_val = typeA_min[cellType_1] + (typeA_max[cellType_1] - typeA_min[cellType_1]) * cellPhiUpdated[cellC_1] / (2 * PI);
             cellRUpdated[cellC_1] = pow(cellAreaUpdate_val / PI, 0.5);
             // The Updated versions of Phi, R, and Fitness of cellC_1 are calculated here
@@ -734,10 +757,23 @@ int main()
         // These two for loops are for calculating center-to-center force terms
         for (cellC_1 = 0; cellC_1 < NCells; cellC_1++) // loop on cellC_1
         {
+            if (cellState[cellC_1] == APOP_STATE)
+            {
+                cellVx[cellC_1] =   0.0 ;
+                cellVy[cellC_1] =   0.0 ;
+
+                continue; // if the cell is already dead, there is nothing to do. Go to the next.
+            }
+
             cellType_1 = cellType[cellC_1];
 
             for (cellC_2 = cellC_1 + 1 ; cellC_2 < NCells; cellC_2++) // loop on cellC_2, for interactions (force and game)
             {
+                if (cellState[cellC_2] == APOP_STATE)
+                {
+                    continue; // if the cell is already dead, there is nothing to do. Go to the next.
+                }
+
                 cellType_2 = cellType[cellC_2];
 
                 if (NN_force[cellC_1][cellC_2])
@@ -775,7 +811,6 @@ int main()
             cellVx[cellC_1] =   cellFx[cellC_1]  / typeGamma[cellType_1] ;
             cellVy[cellC_1] =   cellFy[cellC_1]  / typeGamma[cellType_1] ;
             // Here, the V(t+dt) for cellC_1 is calculated
-                                
 
         } // the end of "for (cellC_1 = 0; cellC_1 < NCells; cellC_1++)"
         // These two for loops are for calculating center-to-center force terms
@@ -783,20 +818,117 @@ int main()
 
         newBornCells = 0;
         newBornInd = NCells;
+        dyingCells = 0;
         for (cellC_1 = 0; cellC_1 < NCells; cellC_1++)
         {
             cellType_1 = cellType[cellC_1];
 
-            cellVx[cellC_1] = cellFx[cellC_1] / typeGamma[cellType_1];
-            cellVy[cellC_1] = cellFy[cellC_1] / typeGamma[cellType_1];
+            // cellVx[cellC_1] = cellFx[cellC_1] / typeGamma[cellType_1];
+            // cellVy[cellC_1] = cellFy[cellC_1] / typeGamma[cellType_1];
 
-            cellX[cellC_1] += cellVx[cellC_1] * dt;
-            cellY[cellC_1] += cellVy[cellC_1] * dt;
+            // cellX[cellC_1] += cellVx[cellC_1] * dt;
+            // cellY[cellC_1] += cellVy[cellC_1] * dt;
 
-            cellPhi[cellC_1] += cellOmega[cellC_1] * dt;
+            // cellPhi[cellC_1] += cellOmega[cellC_1] * dt;
             
-            A_min = typeA_min[cellType_1];
-            A_max = typeA_max[cellType_1];
+            // A_min = typeA_min[cellType_1];
+            // A_max = typeA_max[cellType_1];
+
+            // Updating the original vectors; these also work for dead cells
+            cellX[cellC_1] = cellXUpdated[cellC_1];
+            cellY[cellC_1] = cellYUpdated[cellC_1];
+            cellPhi[cellC_1] = cellPhiUpdated[cellC_1];
+            cellR[cellC_1] = cellRUpdated[cellC_1];
+            cellFitness[cellC_1][0] = cellFitnessUpdated[cellC_1][0];
+            // cellFitness[cellC_1][1] = cellFitnessUpdated[cellC_1][1];
+            // Updating the original vectors
+
+            if (cellType_1 == CA_CELL_TYPE)
+            {
+                cellState[cellC_1] = CYCLING_STATE;
+            }
+            else //WT_CELL_TYPE: fitnesses need to be checked
+            {
+                switch (cellState[cellC_1])
+                {
+                case CYCLING_STATE:
+                    if (cellPhi[cellC_1] < 2.0 *PI)
+                    {
+                        if ( (cellPhi[cellC_1] < G1Border * 2.0 *PI) && (cellFitness[cellC_1][0] < Fit_Th_G1_arr ) )
+                        {
+                            cellState[cellC_1] = G1_ARR_STATE;
+                        }
+                        
+                    } else // cell division
+                    {
+                        rand_divison_angle = (((long double)(mt_rand())-MT_MIN)/((long double)MT_MAX-MT_MIN)) * (2.0 * PI);
+
+                        daughterX_1 = cellX[cellC_1] + (cellR[cellC_1] / 1.4142) * cos(rand_divison_angle);
+                        daughterY_1 = cellY[cellC_1] + (cellR[cellC_1] / 1.4142) * sin(rand_divison_angle);
+                        daughterX_2 = cellX[cellC_1] - (cellR[cellC_1] / 1.4142) * cos(rand_divison_angle);
+                        daughterY_2 = cellY[cellC_1] - (cellR[cellC_1] / 1.4142) * sin(rand_divison_angle);
+                        
+                        // new Born cell
+                        cellType[newBornInd] = cellType_1;
+
+                        cellX[newBornInd] = daughterX_2;
+                        cellY[newBornInd] = daughterY_2;
+
+                        cellVx[newBornInd] = cellVx[cellC_1] / 2.0;
+                        cellVy[newBornInd] = cellVy[cellC_1] / 2.0;
+
+                        // cellArea[newBornInd] = A_min;
+                        cellPhi[newBornInd] = 0.0 ;
+                        cellR[newBornInd] = typeR0[cellType_1];
+                        cellState[newBornInd] = cellState[cellC_1];
+
+                        cellFitness[newBornInd][0] = cellFitness[cellC_1][0];
+                        cellFitness[newBornInd][1] = cellFitness[cellC_1][1];
+                        // new Born cell
+
+                        // original cell
+                        cellX[cellC_1] = daughterX_1;
+                        cellY[cellC_1] = daughterY_1;
+
+                        cellVx[cellC_1] = cellVx[cellC_1] / 2.0;
+                        cellVy[cellC_1] = cellVy[cellC_1] / 2.0;
+
+                        // cellArea[cellC_1] = A_min;
+                        cellPhi[cellC_1] = 0.0 ;
+                        cellR[cellC_1] = typeR0[cellType_1];
+                        // cellState[cellC_1] = cellState[cellC_1];
+                        // original cell
+
+                        newBornInd++;
+                        newBornCells++;
+                    }
+                    break;
+                case G1_ARR_STATE:
+                    if (cellFitness[cellC_1][0] > Fit_Th_G1_arr )
+                    {
+                        cellState[cellC_1] = CYCLING_STATE;
+                    }
+                    else if (cellFitness[cellC_1][0] < Fit_Th_G0 )
+                    {
+                        cellState[cellC_1] = G0_STATE;
+                    }
+                    
+                    break;
+                case G0_STATE:
+                    /* code */
+                    break;
+                case DIFF_STATE:
+                    /* code */
+                    break;
+                case APOP_STATE:
+                    /* code */
+                    break;
+                }
+
+            }
+            
+
+
 
             if (cellPhi[cellC_1] < 2.0 *PI)
             {
