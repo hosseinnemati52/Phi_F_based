@@ -380,6 +380,7 @@ int main()
     vector<double> cellVy(N_UpperLim);
     vector<double> cellFx(N_UpperLim); // force x
     vector<double> cellFy(N_UpperLim); // force y
+    vector<double> cellSigmaGammaCC(N_UpperLim); // The sum of \gamma_{cc} with neighbors, for each cell
     vector<double> cellTheta(N_UpperLim); // self-propulsion direction of cells, \in [0, 2*pi]
 
     vector<double> cellJ(N_UpperLim); // input flux of fitness
@@ -387,6 +388,7 @@ int main()
     vector<int> cellState(N_UpperLim); // Cell state : {cycling:CYCLING_STATE, G1_arr:G1_ARR_STATE, G0:G0_STATE, differentiated:DIFF_STATE, apop:APOP_STATE, does not exist: 0}
     // vector<double> cellOmega(N_UpperLim); // cell fitness. Changes by the game. equals to d phi / dt for cycling cells
     vector<double> cellSync(N_UpperLim); // Kuramoto synchronization term for each cell
+    
     
     vector<double> cellR(N_UpperLim); // The radius of each cell. It may change time to time.
     vector<double> cellArea(N_UpperLim); // The area of each cell. It may change time to time.
@@ -459,7 +461,7 @@ int main()
     double R_cut_force,R_cut_game, R_eq;
     int cellType_1, cellType_2; // type of cell 1 and type of cell 2
     double deltaOmega, KuramotoTerm;
-    double FaddTermX, FaddTermY;
+    double FaddTermX, FaddTermY, gammaCC_val;
     int newBornCells, newBornInd;
     // double A_min, A_max;
     double cellAreaUpdate_val;
@@ -500,6 +502,7 @@ int main()
         {
             cellFx[cellC_1] = 0.0;
             cellFy[cellC_1] = 0.0;
+            cellSigmaGammaCC[cellC_1] = 0.0;
 
             cellJ[cellC_1] = 0.0;
 
@@ -513,6 +516,8 @@ int main()
 
             cellXUpdated[cellC_1] = 0.0;
             cellYUpdated[cellC_1] = 0.0;
+
+            cellSync[cellC_1] = 0.0;
         }
     // Update Auxiliary properties vectors
 
@@ -531,6 +536,8 @@ int main()
 
             cellFx[cellC_1]= 0.0;
             cellFy[cellC_1]= 0.0;
+            cellSigmaGammaCC[cellC_1] = 0.0;
+
             cellJ[cellC_1] = 0.0;
             cellSync[cellC_1] = 0.0;
         }
@@ -585,15 +592,23 @@ int main()
                         
                         // FaddTermX = ( F * (delta_x / distance)  + typeTypeGammaCC[cellType_1][cellType_2] * (cellVx[cellC_2] - cellVx[cellC_1]) );
                         // FaddTermY = ( F * (delta_y / distance)  + typeTypeGammaCC[cellType_1][cellType_2] * (cellVy[cellC_2] - cellVy[cellC_1]) );
+                        
+                        gammaCC_val = typeTypeGammaCC[cellType_1][cellType_2];
 
-                        FaddTermX = typeTypeGammaCC[cellType_1][cellType_2] * (cellVx[cellC_2] - cellVx[cellC_1]) ;
-                        FaddTermY = typeTypeGammaCC[cellType_1][cellType_2] * (cellVy[cellC_2] - cellVy[cellC_1]) ;
+                        FaddTermX = gammaCC_val * (cellVx[cellC_2] - cellVx[cellC_1]) ;
+                        FaddTermY = gammaCC_val * (cellVy[cellC_2] - cellVy[cellC_1]) ;
+
+                        // FaddTermX = gammaCC_val * cellVx[cellC_2] ; // this way may not satisfy Newton's 3rd law
+                        // FaddTermY = gammaCC_val * cellVy[cellC_2] ;
 
                         cellFx[cellC_1] += FaddTermX;
                         cellFy[cellC_1] += FaddTermY;
 
                         cellFx[cellC_2] -= FaddTermX;
                         cellFy[cellC_2] -= FaddTermY;
+
+                        // cellSigmaGammaCC[cellC_1] += gammaCC_val;
+                        // cellSigmaGammaCC[cellC_2] += gammaCC_val;
                     }
                     else
                     {
@@ -757,9 +772,10 @@ int main()
 
 
             // Here, the V(t+dt) for cellC_1 is calculated
-            cellVx[cellC_1] = (1.0 / )
-            gamma cc is not constant.
+            cellVx[cellC_1] =   cellFx[cellC_1]  / typeGamma[cellType_1] ;
+            cellVy[cellC_1] =   cellFy[cellC_1]  / typeGamma[cellType_1] ;
             // Here, the V(t+dt) for cellC_1 is calculated
+                                
 
         } // the end of "for (cellC_1 = 0; cellC_1 < NCells; cellC_1++)"
         // These two for loops are for calculating center-to-center force terms
