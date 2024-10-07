@@ -41,6 +41,7 @@
 #define APOP_STATE      (-4)
 #define CA_CELL_TYPE    (1)
 #define WT_CELL_TYPE    (0)
+#define NULL_CELL_TYPE  (-1) // Does not exist (index > NCells)
 ///////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////#DEFINITIONS///////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////
@@ -183,11 +184,11 @@ void R_Area_calc(const int N_UpperLim, const int NCells, const int NTypes,
 
 void writeIntVectorToFile(const std::vector<int>& vec, int NCells, const std::string& filename);
 
-void writeIntMatrixToFile(const std::vector<std::vector<int>>& mat, int NCells, int NCols, const std::string& filename);
+void writeIntMatrixToFile(const std::vector<std::vector<int>>& mat, const int N_rows_desired, const int N_cols_desired, const std::string& filename);
 
 void writeDoubleVectorToFile(const std::vector<double>& vec, int NCells, const std::string& filename);
 
-void writeDoubleMatrixToFile(const std::vector<std::vector<double>>& mat, int NCells, int NCols, const std::string& filename);
+void writeDoubleMatrixToFile(const std::vector<std::vector<double>>& mat, const int N_rows_desired, const int N_cols_desired, const std::string& filename);
 
 void readIntVectorFromFile(const std::string& filename, std::vector<int>& data);
 
@@ -197,6 +198,20 @@ void readIntMatrixFromFile(const std::string& filename, std::vector<std::vector<
 
 void readDoubleMatrixFromFile(const std::string& filename, std::vector<std::vector<double>>& data);
 
+void dataBunchWriter(const int NCells, \
+                     const vector<double> tBunch, \
+                     const vector<vector<int>> cellTypeBunch, \
+                     const vector<vector<double>> cellXBunch, \
+                     const vector<vector<double>> cellYBunch, \
+                     const vector<vector<double>> cellVxBunch, \
+                     const vector<vector<double>> cellVyBunch, \
+                     const vector<vector<double>> cellPhiBunch, \
+                     const vector<vector<vector<double>>> cellFitnessBunch, \
+                     const int saved_bunch_index);
+
+std::vector<std::vector<int>> IntTranspose(const std::vector<std::vector<int>>& matrix);
+
+std::vector<std::vector<double>> DoubleTranspose(const std::vector<std::vector<double>>& matrix);
 //////////////////////////////////////////////////////////////////////////
 ////////////////////////////// PROTOTYPES ////////////////////////////////
 //////////////////////////////////////////////////////////////////////////
@@ -424,8 +439,11 @@ int main()
 
     //Seeding
     mt_rand.seed(mt_rand_seed);
+    mt_rand.seed(1);
+    
     
     ///////////////// INITIALIZATION ////////////////////
+    int saved_bunch_index = 1;
     if ( initConfig == "read" )
     {
     initial_read(N_UpperLim, &NCells, NCellsPerType,
@@ -473,7 +491,7 @@ int main()
     max_interaction_r =  (max(R_cut_coef_force, R_cut_coef_game)) * 2.0 * (*std::max_element(typeR2PI.begin(), typeR2PI.end()));
     max_interaction_r2 = max_interaction_r * max_interaction_r;
     double gain_noise_real, gain_noise_imag;
-    int int_rand_1, int_rand_2;
+    unsigned long long int_rand_1, int_rand_2;
     double uniform_rand_1, uniform_rand_2, gauss_rand_1, gauss_rand_2; // for Box-Muller transform
     double SyncTerm;
 
@@ -523,7 +541,7 @@ int main()
         }
     // Update Auxiliary properties vectors
 
-
+    
     /////// SIMULATION LOOP /////////////
     while (t < maxTime)
     {
@@ -654,6 +672,12 @@ int main()
                         while(int_rand_1 == MT_MIN || int_rand_1 == MT_MAX){int_rand_1 = mt_rand();}
                         int_rand_2 = mt_rand();
                         while(int_rand_2 == MT_MIN || int_rand_2 == MT_MAX){int_rand_2 = mt_rand();}
+
+                        // if (int_rand_1 < 0 || int_rand_2 < 0)
+                        // {
+                        //     int rrr = 1;
+                        //     rrr++;
+                        // }
 
                         uniform_rand_1 = ((long double)(int_rand_1)-MT_MIN)/((long double)MT_MAX-MT_MIN);
                         uniform_rand_2 = ((long double)(int_rand_2)-MT_MIN)/((long double)MT_MAX-MT_MIN);
@@ -901,7 +925,8 @@ int main()
 
                         newBornInd++;
                         newBornCells++;
-                    }
+                    } // the end of "if (cellPhi[cellC_1] < 2.0 *PI){} else{}"
+
                     break;
                 case G1_ARR_STATE:
                     if (cellFitness[cellC_1][0] > Fit_Th_G1_arr )
@@ -912,72 +937,80 @@ int main()
                     {
                         cellState[cellC_1] = G0_STATE;
                     }
-                    
                     break;
                 case G0_STATE:
-                    /* code */
+                    if (cellFitness[cellC_1][0] > Fit_Th_G0 )
+                    {
+                        cellState[cellC_1] = G1_ARR_STATE;
+                    }
+                    else if (cellFitness[cellC_1][0] < Fit_Th_Diff )
+                    {
+                        cellState[cellC_1] = DIFF_STATE;
+                    }
                     break;
                 case DIFF_STATE:
-                    /* code */
+                    if (cellFitness[cellC_1][0] < Fit_Th_Apop )
+                    {
+                        cellState[cellC_1] = APOP_STATE;
+                    }
                     break;
                 case APOP_STATE:
-                    /* code */
+                    cellState[cellC_1] = APOP_STATE;
                     break;
-                }
-
-            }
+                } // the end of "switch (cellState[cellC_1])"
+            } // the end of "if (cellType_1 == CA_CELL_TYPE){} else{}"
             
 
 
 
-            if (cellPhi[cellC_1] < 2.0 *PI)
-            {
+            // if (cellPhi[cellC_1] < 2.0 *PI)
+            // {
                 
-                cellArea[cellC_1] = A_min + (A_max - A_min) * 0.5 * (1 - cos(cellPhi[cellC_1]/2.0));
-                cellR[cellC_1] = pow(cellArea[cellC_1] / PI, 0.5);
+            //     cellArea[cellC_1] = A_min + (A_max - A_min) * 0.5 * (1 - cos(cellPhi[cellC_1]/2.0));
+            //     cellR[cellC_1] = pow(cellArea[cellC_1] / PI, 0.5);
 
-            } else // CELL DIVISION
-            {
-                rand_divison_angle = (((long double)(mt_rand())-MT_MIN)/((long double)MT_MAX-MT_MIN)) * (2.0 * PI);
+            // } else // CELL DIVISION
+            // {
+            //     rand_divison_angle = (((long double)(mt_rand())-MT_MIN)/((long double)MT_MAX-MT_MIN)) * (2.0 * PI);
 
-                daughterX_1 = cellX[cellC_1] + (cellR[cellC_1] / 1.4142) * cos(rand_divison_angle);
-                daughterY_1 = cellY[cellC_1] + (cellR[cellC_1] / 1.4142) * sin(rand_divison_angle);
-                daughterX_2 = cellX[cellC_1] - (cellR[cellC_1] / 1.4142) * cos(rand_divison_angle);
-                daughterY_2 = cellY[cellC_1] - (cellR[cellC_1] / 1.4142) * sin(rand_divison_angle);
+            //     daughterX_1 = cellX[cellC_1] + (cellR[cellC_1] / 1.4142) * cos(rand_divison_angle);
+            //     daughterY_1 = cellY[cellC_1] + (cellR[cellC_1] / 1.4142) * sin(rand_divison_angle);
+            //     daughterX_2 = cellX[cellC_1] - (cellR[cellC_1] / 1.4142) * cos(rand_divison_angle);
+            //     daughterY_2 = cellY[cellC_1] - (cellR[cellC_1] / 1.4142) * sin(rand_divison_angle);
                 
-                // new Born cell
-                cellType[newBornInd] = cellType_1;
+            //     // new Born cell
+            //     cellType[newBornInd] = cellType_1;
 
-                cellX[newBornInd] = daughterX_2;
-                cellY[newBornInd] = daughterY_2;
+            //     cellX[newBornInd] = daughterX_2;
+            //     cellY[newBornInd] = daughterY_2;
 
-                cellVx[newBornInd] = cellVx[cellC_1] / 2.0;
-                cellVy[newBornInd] = cellVy[cellC_1] / 2.0;
+            //     cellVx[newBornInd] = cellVx[cellC_1] / 2.0;
+            //     cellVy[newBornInd] = cellVy[cellC_1] / 2.0;
 
-                cellArea[newBornInd] = A_min;
-                cellR[newBornInd] = typeR0[cellType_1];
+            //     cellArea[newBornInd] = A_min;
+            //     cellR[newBornInd] = typeR0[cellType_1];
 
-                cellFitness[newBornInd][0] = 0.0;
-                cellFitness[newBornInd][1] = 0.0;
-                // new Born cell
+            //     cellFitness[newBornInd][0] = 0.0;
+            //     cellFitness[newBornInd][1] = 0.0;
+            //     // new Born cell
 
-                // original cell
-                cellX[cellC_1] = daughterX_1;
-                cellY[cellC_1] = daughterY_1;
+            //     // original cell
+            //     cellX[cellC_1] = daughterX_1;
+            //     cellY[cellC_1] = daughterY_1;
 
-                cellVx[cellC_1] = cellVx[cellC_1] / 2.0;
-                cellVy[cellC_1] = cellVy[cellC_1] / 2.0;
+            //     cellVx[cellC_1] = cellVx[cellC_1] / 2.0;
+            //     cellVy[cellC_1] = cellVy[cellC_1] / 2.0;
 
-                cellArea[cellC_1] = A_min;
-                cellR[cellC_1] = typeR0[cellType_1];
+            //     cellArea[cellC_1] = A_min;
+            //     cellR[cellC_1] = typeR0[cellType_1];
 
-                cellPhi[cellC_1] = 0.0 ;
-                // original cell
+            //     cellPhi[cellC_1] = 0.0 ;
+            //     // original cell
 
-                newBornInd++;
-                newBornCells++;
-            }
-        }
+            //     newBornInd++;
+            //     newBornCells++;
+            // }
+        } // the end of "for (cellC_1 = 0; cellC_1 < NCells; cellC_1++)" for State update and cell division operations.
 
         NCells += newBornCells;
 
@@ -1002,7 +1035,19 @@ int main()
             {
                 
                 // write the bunch
+                dataBunchWriter(NCells, \
+                                tBunch, \
+                                cellTypeBunch, \
+                                cellXBunch, \
+                                cellYBunch, \
+                                cellVxBunch, \
+                                cellVyBunch, \
+                                cellPhiBunch, \
+                                cellFitnessBunch, 
+                                saved_bunch_index);
+
                 
+                saved_bunch_index++;
 
                 tBunch.clear();
                 cellTypeBunch.clear();
@@ -1082,15 +1127,18 @@ int main()
             }
             ////// writing the bunch /////////
 
-            // writeIntVectorToFile(cellType, NCells, "data/Type_"+ to_string(ind) + ".txt");
-            // writeDoubleVectorToFile(cellX, NCells, "data/X_"+ to_string(ind) + ".txt");
-            // writeDoubleVectorToFile(cellY, NCells, "data/Y_"+ to_string(ind) + ".txt");
-            // writeDoubleVectorToFile(cellVx, NCells, "data/Vx_"+ to_string(ind) + ".txt");
-            // writeDoubleVectorToFile(cellVy, NCells, "data/Vy_"+ to_string(ind) + ".txt");
-            // writeDoubleVectorToFile(cellPhi, NCells, "data/Phi_"+ to_string(ind) + ".txt");
-            // writeDoubleVectorToFile(cellR, NCells, "data/R_"+ to_string(ind) + ".txt");
+            // writeIntVectorToFile(cellType, NCells, "data/Type_"+ to_string(saved_bunch_index) + ".txt");
+            // writeDoubleVectorToFile(cellX, NCells, "data/X_"+ to_string(saved_bunch_index) + ".txt");
+            // writeDoubleVectorToFile(cellY, NCells, "data/Y_"+ to_string(saved_bunch_index) + ".txt");
+            // writeDoubleVectorToFile(cellVx, NCells, "data/Vx_"+ to_string(saved_bunch_index) + ".txt");
+            // writeDoubleVectorToFile(cellVy, NCells, "data/Vy_"+ to_string(saved_bunch_index) + ".txt");
+            // writeDoubleVectorToFile(cellPhi, NCells, "data/Phi_"+ to_string(saved_bunch_index) + ".txt");
+            // writeDoubleVectorToFile(cellR, NCells, "data/R_"+ to_string(saved_bunch_index) + ".txt");
             // // writeDoubleVectorToFile(cellTheta, NCells, "init/cellTheta_init.txt");
-            // writeDoubleMatrixToFile(cellFitness, NCells, 2,  "data/Fitness_"+ to_string(ind) + ".txt");
+            // writeDoubleMatrixToFile(cellFitness, NCells, 2,  "data/Fitness_"+ to_string(saved_bunch_index) + ".txt");
+
+            
+
             tLastSampling = t;
         }
         ///// Sampling operation //////
@@ -1470,6 +1518,8 @@ void initializer(const int N_UpperLim, int* NCellsPtr, vector<int>& NCellsPerTyp
         cellPhi[cellC] = 0;
         cellState[cellC] = 0;
 
+        cellType[cellC] = NULL_CELL_TYPE;
+
         // cellArea[cellC] = 0;
         // cellR[cellC] = 0;
         cellTheta[cellC] = 0;
@@ -1674,7 +1724,7 @@ void writeIntVectorToFile(const std::vector<int>& vec, int NCells, const std::st
     std::cout << "Data written to file: " << filename << std::endl;
 }
 
-void writeIntMatrixToFile(const std::vector<std::vector<int>>& mat, int NCells, int NCols, const std::string& filename) {
+void writeIntMatrixToFile(const std::vector<std::vector<int>>& mat, const int N_rows_desired, const int N_cols_desired, const std::string& filename) {
     std::ofstream outFile(filename);
 
     if (!outFile.is_open()) {
@@ -1684,13 +1734,13 @@ void writeIntMatrixToFile(const std::vector<std::vector<int>>& mat, int NCells, 
 
     int matRows = mat.size();
     int matCols = mat[0].size();
-    NCells = std::min(NCells, matRows);
-    NCols = std::min(NCols, matCols);
+    int N_Rows = std::min(N_rows_desired, matRows);
+    int N_Cols = std::min(N_cols_desired, matCols);
 
-    for (int i = 0; i < NCells; ++i) {
-        for (int j = 0; j < NCols; ++j) {
+    for (int i = 0; i < N_Rows; ++i) {
+        for (int j = 0; j < N_Cols; ++j) {
             outFile << mat[i][j];
-            if (j < NCols - 1) {
+            if (j < N_Cols - 1) {
                 outFile << ", ";
             }
         }
@@ -1722,7 +1772,7 @@ void writeDoubleVectorToFile(const std::vector<double>& vec, int NCells, const s
     std::cout << "Data written to file: " << filename << std::endl;
 }
 
-void writeDoubleMatrixToFile(const std::vector<std::vector<double>>& mat, int NCells, int NCols, const std::string& filename) {
+void writeDoubleMatrixToFile(const std::vector<std::vector<double>>& mat, const int N_rows_desired, const int N_cols_desired, const std::string& filename) {
     std::ofstream outFile(filename);
 
     if (!outFile.is_open()) {
@@ -1734,13 +1784,13 @@ void writeDoubleMatrixToFile(const std::vector<std::vector<double>>& mat, int NC
 
     int matRows = mat.size();
     int matCols = mat[0].size();
-    NCells = std::min(NCells, matRows);
-    NCols = std::min(NCols, matCols);
+    int N_Rows = std::min(N_rows_desired, matRows);
+    int N_Cols = std::min(N_cols_desired, matCols);
 
-    for (int i = 0; i < NCells; ++i) {
-        for (int j = 0; j < NCols; ++j) {
+    for (int i = 0; i < N_Rows; ++i) {
+        for (int j = 0; j < N_Cols; ++j) {
             outFile << mat[i][j];
-            if (j < NCols - 1) {
+            if (j < N_Cols - 1) {
                 outFile << ", ";
             }
         }
@@ -1841,6 +1891,67 @@ void readDoubleMatrixFromFile(const std::string& filename, std::vector<std::vect
     }
 
     file.close();
+}
+
+std::vector<std::vector<int>> IntTranspose(const std::vector<std::vector<int>>& matrix) {
+    if (matrix.empty()) return {};
+
+    int rows = matrix.size();
+    int cols = matrix[0].size();
+
+    // Create a result vector with transposed dimensions
+    std::vector<std::vector<int>> transposed(cols, std::vector<int>(rows));
+
+    for (int i = 0; i < rows; ++i) {
+        for (int j = 0; j < cols; ++j) {
+            transposed[j][i] = matrix[i][j];
+        }
+    }
+
+    return transposed;
+}
+
+std::vector<std::vector<double>> DoubleTranspose(const std::vector<std::vector<double>>& matrix) {
+    if (matrix.empty()) return {};
+
+    int rows = matrix.size();
+    int cols = matrix[0].size();
+
+    // Create a result vector with transposed dimensions
+    std::vector<std::vector<double>> transposed(cols, std::vector<double>(rows));
+
+    for (int i = 0; i < rows; ++i) {
+        for (int j = 0; j < cols; ++j) {
+            transposed[j][i] = matrix[i][j];
+        }
+    }
+
+    return transposed;
+}
+
+void dataBunchWriter(const int NCells, \
+                     const vector<double> tBunch, \
+                     const vector<vector<int>> cellTypeBunch, \
+                     const vector<vector<double>> cellXBunch, \
+                     const vector<vector<double>> cellYBunch, \
+                     const vector<vector<double>> cellVxBunch, \
+                     const vector<vector<double>> cellVyBunch, \
+                     const vector<vector<double>> cellPhiBunch, \
+                     const vector<vector<vector<double>>> cellFitnessBunch, \
+                     const int saved_bunch_index)
+{
+    int N_rows = NCells;
+    int N_cols = tBunch.size();
+
+    writeDoubleVectorToFile(tBunch, NCells, "data/t_"+ to_string(saved_bunch_index) + ".txt");
+    writeIntMatrixToFile(IntTranspose(cellTypeBunch), NCells, cellTypeBunch.size(), "data/Type_"+ to_string(saved_bunch_index) + ".txt");
+    writeDoubleMatrixToFile(DoubleTranspose(cellXBunch), NCells, cellXBunch.size(), "data/X_"+ to_string(saved_bunch_index) + ".txt");
+    writeDoubleMatrixToFile(DoubleTranspose(cellYBunch), NCells, cellYBunch.size(), "data/Y_"+ to_string(saved_bunch_index) + ".txt");
+    writeDoubleMatrixToFile(DoubleTranspose(cellVxBunch), NCells, cellVxBunch.size(), "data/Vx_"+ to_string(saved_bunch_index) + ".txt");
+    writeDoubleMatrixToFile(DoubleTranspose(cellVyBunch), NCells, cellVyBunch.size(), "data/Vy_"+ to_string(saved_bunch_index) + ".txt");
+    writeDoubleMatrixToFile(DoubleTranspose(cellPhiBunch), NCells, cellPhiBunch.size(), "data/Phi_"+ to_string(saved_bunch_index) + ".txt");
+    
+
 }
 //////////////////////////////////////////////////////////////////////////
 ////////////////////////////// FUNCTIONS /////////////////////////////////

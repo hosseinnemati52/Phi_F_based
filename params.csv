@@ -33,9 +33,9 @@ Fit_Th_Apop = 0.5
 ############### THRESHOLD FITNESSES ##############
 
 ############### TIMING & SAMPLING ##############
-maxTime = 50.0
-dt = 0.005
-dt_sample = 0.05
+maxTime = 5.0
+dt = 0.01
+dt_sample = 0.01
 samplesPerWrite = 2
 writePerZip = 10
 printingTimeInterval = 1.0
