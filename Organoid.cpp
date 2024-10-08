@@ -869,6 +869,50 @@ int main()
             // cellFitness[cellC_1][1] = cellFitnessUpdated[cellC_1][1];
             // Updating the original vectors
 
+            if (cellPhi[cellC_1] >= 2.0 *PI)
+            {
+                rand_divison_angle = (((long double)(mt_rand())-MT_MIN)/((long double)MT_MAX-MT_MIN)) * (2.0 * PI);
+
+                daughterX_1 = cellX[cellC_1] + (cellR[cellC_1] / 1.4142) * cos(rand_divison_angle);
+                daughterY_1 = cellY[cellC_1] + (cellR[cellC_1] / 1.4142) * sin(rand_divison_angle);
+                daughterX_2 = cellX[cellC_1] - (cellR[cellC_1] / 1.4142) * cos(rand_divison_angle);
+                daughterY_2 = cellY[cellC_1] - (cellR[cellC_1] / 1.4142) * sin(rand_divison_angle);
+                
+                // new Born cell
+                cellType[newBornInd] = cellType_1;
+
+                cellX[newBornInd] = daughterX_2;
+                cellY[newBornInd] = daughterY_2;
+
+                cellVx[newBornInd] = cellVx[cellC_1] / 2.0;
+                cellVy[newBornInd] = cellVy[cellC_1] / 2.0;
+
+                // cellArea[newBornInd] = A_min;
+                cellPhi[newBornInd] = 0.0 ;
+                cellR[newBornInd] = typeR0[cellType_1];
+                cellState[newBornInd] = cellState[cellC_1];
+
+                cellFitness[newBornInd][0] = cellFitness[cellC_1][0];
+                cellFitness[newBornInd][1] = cellFitness[cellC_1][1];
+                // new Born cell
+
+                // original cell
+                cellX[cellC_1] = daughterX_1;
+                cellY[cellC_1] = daughterY_1;
+
+                cellVx[cellC_1] = cellVx[cellC_1] / 2.0;
+                cellVy[cellC_1] = cellVy[cellC_1] / 2.0;
+
+                // cellArea[cellC_1] = A_min;
+                cellPhi[cellC_1] = 0.0 ;
+                cellR[cellC_1] = typeR0[cellType_1];
+                // cellState[cellC_1] = cellState[cellC_1];
+                // original cell
+
+                newBornInd++;
+                newBornCells++;
+            } // the end of "if (cellPhi[cellC_1] < 2.0 *PI){} else{}"
+            
             if (cellType_1 == CA_CELL_TYPE)
             {
                 cellState[cellC_1] = CYCLING_STATE;
@@ -878,57 +922,10 @@ int main()
                 switch (cellState[cellC_1])
                 {
                 case CYCLING_STATE:
-                    if (cellPhi[cellC_1] < 2.0 *PI)
+                    if ( (cellPhi[cellC_1] < G1Border * 2.0 *PI) && (cellFitness[cellC_1][0] < Fit_Th_G1_arr ) )
                     {
-                        if ( (cellPhi[cellC_1] < G1Border * 2.0 *PI) && (cellFitness[cellC_1][0] < Fit_Th_G1_arr ) )
-                        {
-                            cellState[cellC_1] = G1_ARR_STATE;
-                        }
-                        
-                    } else // cell division
-                    {
-                        rand_divison_angle = (((long double)(mt_rand())-MT_MIN)/((long double)MT_MAX-MT_MIN)) * (2.0 * PI);
-
-                        daughterX_1 = cellX[cellC_1] + (cellR[cellC_1] / 1.4142) * cos(rand_divison_angle);
-                        daughterY_1 = cellY[cellC_1] + (cellR[cellC_1] / 1.4142) * sin(rand_divison_angle);
-                        daughterX_2 = cellX[cellC_1] - (cellR[cellC_1] / 1.4142) * cos(rand_divison_angle);
-                        daughterY_2 = cellY[cellC_1] - (cellR[cellC_1] / 1.4142) * sin(rand_divison_angle);
-                        
-                        // new Born cell
-                        cellType[newBornInd] = cellType_1;
-
-                        cellX[newBornInd] = daughterX_2;
-                        cellY[newBornInd] = daughterY_2;
-
-                        cellVx[newBornInd] = cellVx[cellC_1] / 2.0;
-                        cellVy[newBornInd] = cellVy[cellC_1] / 2.0;
-
-                        // cellArea[newBornInd] = A_min;
-                        cellPhi[newBornInd] = 0.0 ;
-                        cellR[newBornInd] = typeR0[cellType_1];
-                        cellState[newBornInd] = cellState[cellC_1];
-
-                        cellFitness[newBornInd][0] = cellFitness[cellC_1][0];
-                        cellFitness[newBornInd][1] = cellFitness[cellC_1][1];
-                        // new Born cell
-
-                        // original cell
-                        cellX[cellC_1] = daughterX_1;
-                        cellY[cellC_1] = daughterY_1;
-
-                        cellVx[cellC_1] = cellVx[cellC_1] / 2.0;
-                        cellVy[cellC_1] = cellVy[cellC_1] / 2.0;
-
-                        // cellArea[cellC_1] = A_min;
-                        cellPhi[cellC_1] = 0.0 ;
-                        cellR[cellC_1] = typeR0[cellType_1];
-                        // cellState[cellC_1] = cellState[cellC_1];
-                        // original cell
-
-                        newBornInd++;
-                        newBornCells++;
-                    } // the end of "if (cellPhi[cellC_1] < 2.0 *PI){} else{}"
-
+                        cellState[cellC_1] = G1_ARR_STATE;
+                    }        
                     break;
                 case G1_ARR_STATE:
                     if (cellFitness[cellC_1][0] > Fit_Th_G1_arr )

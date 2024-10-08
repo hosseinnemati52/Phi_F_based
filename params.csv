@@ -36,18 +36,18 @@ Fit_Th_Apop = 0.5
 maxTime = 5.0
 dt = 0.01
 dt_sample = 0.01
-samplesPerWrite = 2
+samplesPerWrite = 10
 writePerZip = 10
 printingTimeInterval = 1.0
 ############### TIMING & SAMPLING ##############
 
 ############### GAME ##############
-R_cut_coef_game = 1.6
-GameNoiseSigma = 0.1
-tau = 2.0
-typeTypePayOff_mat_real_C = [[0.000, 0.0];[0.0, 0.00]]
-typeTypePayOff_mat_real_F1 = [[0.000, 0.0];[0.0, 0.00]]
-typeTypePayOff_mat_real_F2 = [[0.000, 0.0];[0.0, 0.00]]
+R_cut_coef_game = 1.1
+GameNoiseSigma = 0.0
+tau = 1.0
+typeTypePayOff_mat_real_C = [[0.000, -0.1];[0.1, 0.00]]
+typeTypePayOff_mat_real_F1 = [[-1.0, 0.0];[0.0, -1.00]]
+typeTypePayOff_mat_real_F2 = [[1.000, 0.0];[0.0, 1.00]]
 typeTypePayOff_mat_imag_C = [[0.000, 0.0];[0.0, 0.00]]
 typeTypePayOff_mat_imag_F1 = [[0.000, 0.0];[0.0, 0.00]]
 typeTypePayOff_mat_imag_F2 = [[0.000, 0.0];[0.0, 0.00]]
