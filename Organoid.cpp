@@ -237,8 +237,8 @@ int main()
     // mkdir(backupResumeFolderName.c_str()); //making backup_resume folder
 
     // This block is for Linux:
-    // mkdir(dataFolderName.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH); //making data folder
-    // mkdir(initFolderName.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH); //making init folder
+    mkdir(dataFolderName.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH); //making data folder
+    mkdir(initFolderName.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH); //making init folder
     mkdir(mainResumeFolderName.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH); //making main_resume folder
     mkdir(backupResumeFolderName.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH); //making backup_resume folder
     /////////////////// MAKING SUB DIRECTORIES /////////////////
@@ -441,7 +441,7 @@ int main()
 
     //Seeding
     mt_rand.seed(mt_rand_seed);
-    mt_rand.seed(1);
+    // mt_rand.seed(1);
     
     
     ///////////////// INITIALIZATION ////////////////////
@@ -498,8 +498,10 @@ int main()
     double SyncTerm;
 
     // for identifying immediate neighbors
-    int NN_force[N_UpperLim][N_UpperLim];
-    int NN_game[N_UpperLim][N_UpperLim];
+    // int NN_force[N_UpperLim][N_UpperLim];
+    // int NN_game[N_UpperLim][N_UpperLim];
+    vector<vector<int>> NN_force(N_UpperLim, vector<int>(N_UpperLim));
+    vector<vector<int>> NN_game(N_UpperLim, vector<int>(N_UpperLim));
     for (cellC_1 = 0; cellC_1 < N_UpperLim; cellC_1++)
     {
         for (cellC_2 = 0; cellC_2 < N_UpperLim; cellC_2++)
@@ -1149,7 +1151,8 @@ int main()
     
 
 
-
+    
+    system("python3 dataZipper.py");
 
 
 
@@ -1436,8 +1439,18 @@ void initializer(const int N_UpperLim, int* NCellsPtr, vector<int>& NCellsPerTyp
                  vector<double>& cellPhi, vector<int>& cellState, vector<double>& cellTheta,
                  vector<vector<double>>& cellFitness, const vector<double>& typeFit0)
 {
-    NCellsPerType[0] = 500;
-    NCellsPerType[1] = 50;
+    // NCellsPerType[0] = 500;
+    // NCellsPerType[1] = 50;
+
+    vector<int> NCellsPerType_read;
+
+    readIntVectorFromFile("Init_numbers.csv", NCellsPerType_read);
+    int NTypes = NCellsPerType_read.size();
+
+    for (int i = 0; i < NTypes; i++)
+    {
+        NCellsPerType[i] = NCellsPerType_read[i];
+    }
 
     int NCells = NCellsPerType[0] + NCellsPerType[1];
     
@@ -1450,7 +1463,16 @@ void initializer(const int N_UpperLim, int* NCellsPtr, vector<int>& NCellsPerTyp
 
     double cellArea_val, cellR_val;
 
-    vector<double> A_tot_sq(2);
+    vector<double> A_tot_sq(NTypes);
+    vector<double> A_tot(NTypes);
+    for (int i = 0; i < NTypes; i++)
+    {
+        A_tot_sq[i] = 0.0;
+        A_tot[i] = 0.0;
+    }
+    
+    vector<double> cellR(NCells);
+
 
     int cellC = 0;
 
@@ -1469,7 +1491,9 @@ void initializer(const int N_UpperLim, int* NCellsPtr, vector<int>& NCellsPerTyp
         // cellArea[cellC] = A_min + (A_max - A_min) * 0.5 * (1 - cos(cellPhi[cellC]/2.0)); // cosine area independency to phi
         cellArea_val = A_min + (A_max - A_min) * cellPhi[cellC] / (2 * PI); // linear area independency to phi
         cellR_val = pow(cellArea_val / PI, 0.5);
+        cellR[cellC] = cellR_val;
         A_tot_sq[typeInd] += 4 * cellR_val * cellR_val;
+        A_tot[typeInd] += PI * cellR_val * cellR_val;
 
         random_float = static_cast<float>(std::rand()) / static_cast<float>(RAND_MAX);
         cellTheta[cellC] = random_float * (2*PI);
@@ -1498,7 +1522,9 @@ void initializer(const int N_UpperLim, int* NCellsPtr, vector<int>& NCellsPerTyp
         // cellArea[cellC] = A_min + (A_max - A_min) * 0.5 * (1 - cos(cellPhi[cellC]/2.0));  // cosine area independency to phi
         cellArea_val = A_min + (A_max - A_min) * cellPhi[cellC] / (2 * PI); // linear area independency to phi
         cellR_val = pow(cellArea_val / PI, 0.5);
+        cellR[cellC] = cellR_val;
         A_tot_sq[typeInd] += 4 * cellR_val * cellR_val;
+        A_tot[typeInd] += PI * cellR_val * cellR_val;
 
         random_float = static_cast<float>(std::rand()) / static_cast<float>(RAND_MAX);
         cellTheta[cellC] = random_float * (2*PI);
@@ -1536,16 +1562,18 @@ void initializer(const int N_UpperLim, int* NCellsPtr, vector<int>& NCellsPerTyp
     }
 
     ////// initialization of X and Y //////
-    double Lx , Ly;
+    // double Lx , Ly;
     double R_tot;
-    R_tot = pow( (A_tot_sq[0] + A_tot_sq[1]) / PI, 0.5);
-    Lx = 2.0 * R_tot;
-    Ly = 2.0 * R_tot;
+    // R_tot = pow( (A_tot_sq[0] + A_tot_sq[1]) / PI, 0.5);
+    R_tot = pow( (A_tot[0] + A_tot[1]) / PI, 0.5);
+    // Lx = 2.0 * R_tot;
+    // Ly = 2.0 * R_tot;
 
     // finding h (border of WT and Cancer cells)
     double h = R_tot;
     double dh = 0.001 * R_tot;
     double a = 0.0;
+    
     while (a < A_tot_sq[1])
     {
         a = R_tot * R_tot * acos(h/R_tot) - h * pow(R_tot * R_tot - h * h , 0.5);
@@ -1553,12 +1581,14 @@ void initializer(const int N_UpperLim, int* NCellsPtr, vector<int>& NCellsPerTyp
     }
     // finding h (border of WT and Cancer cells)
 
+    double overlap;
+
     cellC = 0;
     while (cellC < NCellsPerType[0] + NCellsPerType[1])
     {   
         typeInd = cellType[cellC];
         
-        int repeat_cond, out_cond, not_part_cond;
+        int repeat_cond, out_cond, not_part_cond, too_close_cond;
         double x, y;
 
         do
@@ -1579,7 +1609,18 @@ void initializer(const int N_UpperLim, int* NCellsPtr, vector<int>& NCellsPerTyp
                 not_part_cond = (y <= h);
             }
 
-            repeat_cond = out_cond || not_part_cond;
+            too_close_cond = 0;
+            for (int j = 0; j < cellC; j++)
+            {
+                if ((x-cellX[j])*(x-cellX[j]) + (y-cellY[j])*(y-cellY[j]) < pow(0.6 * (cellR[cellC]+cellR[j]), 2)  )
+                {
+                    too_close_cond = 1;
+                    break;
+                }
+                
+            }
+            
+            repeat_cond = out_cond || not_part_cond || too_close_cond;
 
         } while (repeat_cond);
         
@@ -1596,16 +1637,16 @@ void initializer(const int N_UpperLim, int* NCellsPtr, vector<int>& NCellsPerTyp
     //// This block is for Linux:
     mkdir("init", S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH); //making backup_resume folder
 
-    writeIntVectorToFile(cellType, NCells, "init/cellType_init.txt");
-    writeDoubleVectorToFile(cellX, NCells, "init/cellX_init.txt");
-    writeDoubleVectorToFile(cellY, NCells, "init/cellY_init.txt");
-    writeDoubleVectorToFile(cellVx, NCells, "init/cellVx_init.txt");
-    writeDoubleVectorToFile(cellVy, NCells, "init/cellVy_init.txt");
-    writeDoubleVectorToFile(cellPhi, NCells, "init/cellPhi_init.txt");
-    writeIntVectorToFile(cellState, NCells, "init/cellState_init.txt");
-    // writeDoubleVectorToFile(cellR, NCells, "init/cellR_init.txt");
-    writeDoubleVectorToFile(cellTheta, NCells, "init/cellTheta_init.txt");
-    writeDoubleMatrixToFile(cellFitness, NCells, 2,  "init/cellFitness_init.txt");
+    writeIntVectorToFile(cellType, NCells, "init/Type_init.txt");
+    writeDoubleVectorToFile(cellX, NCells, "init/X_init.txt");
+    writeDoubleVectorToFile(cellY, NCells, "init/Y_init.txt");
+    writeDoubleVectorToFile(cellVx, NCells, "init/Vx_init.txt");
+    writeDoubleVectorToFile(cellVy, NCells, "init/Vy_init.txt");
+    writeDoubleVectorToFile(cellPhi, NCells, "init/Phi_init.txt");
+    writeIntVectorToFile(cellState, NCells, "init/State_init.txt");
+    // writeDoubleVectorToFile(cellR, NCells, "init/R_init.txt");
+    writeDoubleVectorToFile(cellTheta, NCells, "init/Theta_init.txt");
+    writeDoubleMatrixToFile(cellFitness, NCells, 2,  "init/Fit_init.txt");
 }
 
 void initial_read(const int N_UpperLim, int* NCellsPtr, vector<int>& NCellsPerType,
@@ -1636,7 +1677,7 @@ void initial_read(const int N_UpperLim, int* NCellsPtr, vector<int>& NCellsPerTy
     readDoubleVectorFromFile("init/Phi_init.txt", cellPhi_read);
     readIntVectorFromFile("init/State_init.txt", cellState_read);
     readDoubleVectorFromFile("init/Theta_init.txt", cellTheta_read);
-    readDoubleMatrixFromFile("init/Fitness_init.txt", cellFitness_read);
+    readDoubleMatrixFromFile("init/Fit_init.txt", cellFitness_read);
 
     int NCells = cellType_read.size();
     *NCellsPtr = NCells;
@@ -1720,7 +1761,7 @@ void writeIntVectorToFile(const std::vector<int>& vec, int NCells, const std::st
     }
 
     outFile.close();
-    std::cout << "Data written to file: " << filename << std::endl;
+    // std::cout << "Data written to file: " << filename << std::endl;
 }
 
 void writeIntMatrixToFile(const std::vector<std::vector<int>>& mat, const int N_rows_desired, const int N_cols_desired, const std::string& filename) {
@@ -1747,7 +1788,7 @@ void writeIntMatrixToFile(const std::vector<std::vector<int>>& mat, const int N_
     }
 
     outFile.close();
-    std::cout << "Data written to file: " << filename << std::endl;
+    // std::cout << "Data written to file: " << filename << std::endl;
 }
 
 void writeDoubleVectorToFile(const std::vector<double>& vec, int NCells, const std::string& filename) {
@@ -1768,7 +1809,7 @@ void writeDoubleVectorToFile(const std::vector<double>& vec, int NCells, const s
     }
 
     outFile.close();
-    std::cout << "Data written to file: " << filename << std::endl;
+    // std::cout << "Data written to file: " << filename << std::endl;
 }
 
 void writeDoubleMatrixToFile(const std::vector<std::vector<double>>& mat, const int N_rows_desired, const int N_cols_desired, const std::string& filename) {
@@ -1797,7 +1838,7 @@ void writeDoubleMatrixToFile(const std::vector<std::vector<double>>& mat, const 
     }
 
     outFile.close();
-    std::cout << "Data written to file: " << filename << std::endl;
+    // std::cout << "Data written to file: " << filename << std::endl;
 }
 
 void writeFitnessToFile(const std::vector<std::vector<std::vector<double>>>& matrix, const int N_rows_desired, const int N_cols_desired, const std::string& filename) {

@@ -7,7 +7,7 @@ def numerical_sort(value):
     parts = re.split(r'(\d+)', value)
     return [int(part) if part.isdigit() else part for part in parts]
 
-def create_gif_from_pngs(directory_path, output_path, duration=100):
+def create_gif_from_pngs(directory_path, output_path, duration=50):
     # Ensure the directory path uses the correct separator for Windows
     directory_path = os.path.normpath(directory_path)
     output_path = os.path.normpath(output_path)
