@@ -257,7 +257,7 @@ def plotter(t, snapshotInd):
     
     # ax1.set_ylabel('Y-axis')
     
-    plt.savefig(file_name, dpi=100)
+    plt.savefig(file_name, dpi=150)
     # plt.show()
     plt.close()
     
