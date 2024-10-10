@@ -1,16 +1,16 @@
 ############### GENERAL ##############
-N_UpperLim = 2000
+N_UpperLim = 30000
 NTypes = 2
 typeR0   = [0.5, 0.5]
-typeR2PI = [0.705, 0.795]
+typeR2PI = [0.705, 0.705]
 typeTypeEpsilon = [[0.00, 0.00];[0.00, 0.00]]
 ############### GENERAL ##############
 
 ############### FORCE AND FRICTION ##############
-typeGamma = [4.0, 4.0]
+typeGamma = [5.0, 5.0]
 typeTypeGammaCC = [[0.01, 0.01];[0.01, 0.01]]
-typeTypeF_rep_max = [[500., 500.];[500., 500.]]
-typeTypeF_abs_max = [[0.0, 0.0];[0.0, 0.0]]
+typeTypeF_rep_max = [[400., 400.];[400., 400.]]
+typeTypeF_abs_max = [[20.0, 20.0];[20.0, 20.0]]
 R_eq_coef = 1.0
 R_cut_coef_force = 1.1
 ############### FORCE AND FRICTION ##############
@@ -25,7 +25,7 @@ G1Border = 0.45
 ############### G1 phase border / (2*PI) ##############
 
 ############### THRESHOLD FITNESSES ##############
-typeFit0 = [1.0, 1.2]
+typeFit0 = [1.0, 1.0]
 Fit_Th_G1_arr = 0.85
 Fit_Th_G0 = 0.8
 Fit_Th_Diff = 0.7
@@ -33,19 +33,19 @@ Fit_Th_Apop = 0.5
 ############### THRESHOLD FITNESSES ##############
 
 ############### TIMING & SAMPLING ##############
-maxTime = 2.0
-dt = 0.002
-dt_sample = 0.002
-samplesPerWrite = 100
+maxTime = 30.1
+dt = 0.005
+dt_sample = 0.1
+samplesPerWrite = 50
 writePerZip = 10
 printingTimeInterval = 1.0
 ############### TIMING & SAMPLING ##############
 
 ############### GAME ##############
-R_cut_coef_game = 1.1
-GameNoiseSigma = 0.0
+R_cut_coef_game = 0.01
+GameNoiseSigma = 0.00
 tau = 1.0
-typeTypePayOff_mat_real_C = [[0.000, -0.1];[0.1, 0.00]]
+typeTypePayOff_mat_real_C = [[0.000, -1.0];[1.0, 0.00]]
 typeTypePayOff_mat_real_F1 = [[-1.0, 0.0];[0.0, -1.00]]
 typeTypePayOff_mat_real_F2 = [[1.000, 0.0];[0.0, 1.00]]
 typeTypePayOff_mat_imag_C = [[0.000, 0.0];[0.0, 0.00]]

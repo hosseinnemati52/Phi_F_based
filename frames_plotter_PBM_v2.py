@@ -20,6 +20,7 @@ import matplotlib.cm as cm
 import matplotlib.colors as mcolors
 import re
 import subprocess
+import os
 
 
 def parse_array(value):
@@ -178,17 +179,27 @@ def plotter(t, snapshotInd):
     
     thresh = 1e-8
     
-    WT_fitness_max = np.max(cellFitness[WT_indices, 0])
-    WT_fitness_min = np.min(cellFitness[WT_indices, 0])
-    
-    if abs(WT_fitness_max-WT_fitness_min)<thresh:
-        WT_fitness_max = WT_fitness_min + thresh
+    if len(WT_indices[WT_indices==1])>0:
+        WT_fitness_max = np.max(cellFitness[WT_indices, 0])
+        WT_fitness_min = np.min(cellFitness[WT_indices, 0])
         
-    C_fitness_max = np.max(cellFitness[C_indices, 0])
-    C_fitness_min = np.min(cellFitness[C_indices, 0])
+        if abs(WT_fitness_max-WT_fitness_min)<thresh:
+            WT_fitness_max = WT_fitness_min + thresh
+    else:
+        WT_fitness_max = 0
+        WT_fitness_min = 0
     
-    if abs(C_fitness_max-C_fitness_min)<thresh:
-        C_fitness_max = C_fitness_min + thresh
+    
+    
+    if len(C_indices[C_indices==1])>0:
+        C_fitness_max = np.max(cellFitness[C_indices, 0])
+        C_fitness_min = np.min(cellFitness[C_indices, 0])
+        
+        if abs(C_fitness_max-C_fitness_min)<thresh:
+            C_fitness_max = C_fitness_min + thresh
+    else:
+        C_fitness_max = 0
+        C_fitness_min = 0
     
     
     normWT = mcolors.Normalize(vmin = WT_fitness_min , vmax = WT_fitness_max)
@@ -224,7 +235,7 @@ def plotter(t, snapshotInd):
     ax1.set_xlabel('X-axis')
     ax1.set_ylabel('Y-axis')
     
-    title = 't =' +str(round(t, 4))
+    title = 't = {:.3f}'.format(t)
     ax1.set_title(title)
     # ax1.set_title('Colored Scatter Plot with Circles')
     # plt.colorbar()  # Show color scale
@@ -246,12 +257,18 @@ def plotter(t, snapshotInd):
     
     # ax1.set_ylabel('Y-axis')
     
-    plt.savefig(file_name, dpi=200)
+    plt.savefig(file_name, dpi=100)
     # plt.show()
     plt.close()
     
     return 0
 
+
+try:
+    directory = "frames"
+    os.makedirs(directory, exist_ok=True)
+except:
+    pass
 
 filename = 'params.csv'
 variables = read_custom_csv(filename)

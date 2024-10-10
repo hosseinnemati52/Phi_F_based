@@ -206,6 +206,7 @@ void dataBunchWriter(const int NCells, \
                      const vector<vector<double>> cellVxBunch, \
                      const vector<vector<double>> cellVyBunch, \
                      const vector<vector<double>> cellPhiBunch, \
+                     const vector<vector<int>> cellStateBunch, \
                      const vector<vector<vector<double>>> cellFitnessBunch, \
                      const int saved_bunch_index);
 
@@ -429,8 +430,6 @@ int main()
 
     ////////////////////// DEFINING RANDOM GENERATOR ///////////////
     std::mt19937 mt_rand;
-    unsigned long MT_MAX = mt_rand.max();
-    unsigned long MT_MIN = mt_rand.min();
     unsigned long randState;
     ////////////////////// DEFINING RANDOM GENERATOR ///////////////
 
@@ -441,7 +440,20 @@ int main()
 
     //Seeding
     mt_rand.seed(mt_rand_seed);
-    // mt_rand.seed(1);
+    unsigned long MT_MAX = mt_rand.max();
+    unsigned long MT_MIN = mt_rand.min();
+    // saving initial random seed
+    ofstream randSeedInit;
+    randSeedInit.open(initFolderName + "/" + "randSeedInit.csv");
+    randSeedInit << mt_rand_seed;
+    randSeedInit.close(); // random seed saved
+    
+
+    // saving initial random generator
+    std::ofstream randStateInit(initFolderName + "/" + "randStateInit.csv");
+    randStateInit << mt_rand;
+    randStateInit.close();
+    /////////////////// RANDOM GENERATOR SEEDING /////////////////
     
     
     ///////////////// INITIALIZATION ////////////////////
@@ -472,7 +484,7 @@ int main()
 
     // double dt = 0.01;
     double t = dt;
-    double t_eps = 1e-8;
+    double t_eps = 0.01 * dt;
     double tLastSampling = 0.0;
     int bunchInd = 1;
     double Fx, Fy, F; // these are forces
@@ -545,10 +557,23 @@ int main()
         }
     // Update Auxiliary properties vectors
 
-    
+    int debug_var;
+
     /////// SIMULATION LOOP /////////////
     while (t < maxTime)
     {
+        // // debug
+        // if (abs(t-0.11)<t_eps)
+        // {
+        //     debug_var = 1;
+        // }
+
+        // if (abs(t-0.115)<t_eps)
+        // {
+        //     debug_var = 2;
+        // }
+        // // debug
+
 
         // This loop for: Non-interactive updates, zero assighnment of interactive mediate tools.
         for (cellC_1 = 0; cellC_1 < NCells; cellC_1++)
@@ -564,6 +589,14 @@ int main()
 
             cellJ[cellC_1] = 0.0;
             cellSync[cellC_1] = 0.0;
+
+            // // debug
+            // if (abs(cellXUpdated[cellC_1]-cellX[cellC_1])>1)
+            // {
+            //     debug_var = 3;
+            // }
+            // // debug
+
         }
         // setting forces, and fluxes to zero
         
@@ -637,6 +670,11 @@ int main()
                         FaddTermX = typeTypeGammaCC[cellType_1][cellType_2] * (cellVx[cellC_2] - cellVx[cellC_1]) ;
                         FaddTermY = typeTypeGammaCC[cellType_1][cellType_2] * (cellVy[cellC_2] - cellVy[cellC_1]) ;
 
+                        // if (abs(FaddTermX)>0 || abs(FaddTermY)>0)
+                        // {
+                        //     int rrr = 1;
+                        // }
+
                         // FaddTermX = gammaCC_val * cellVx[cellC_2] ; // this way may not satisfy Newton's 3rd law
                         // FaddTermY = gammaCC_val * cellVy[cellC_2] ;
 
@@ -676,12 +714,6 @@ int main()
                         while(int_rand_1 == MT_MIN || int_rand_1 == MT_MAX){int_rand_1 = mt_rand();}
                         int_rand_2 = mt_rand();
                         while(int_rand_2 == MT_MIN || int_rand_2 == MT_MAX){int_rand_2 = mt_rand();}
-
-                        // if (int_rand_1 < 0 || int_rand_2 < 0)
-                        // {
-                        //     int rrr = 1;
-                        //     rrr++;
-                        // }
 
                         uniform_rand_1 = ((long double)(int_rand_1)-MT_MIN)/((long double)MT_MAX-MT_MIN);
                         uniform_rand_2 = ((long double)(int_rand_2)-MT_MIN)/((long double)MT_MAX-MT_MIN);
@@ -812,6 +844,7 @@ int main()
                     distance = pow( (delta_x * delta_x + delta_y * delta_y) , 0.5);
 
                     R_eq =   R_eq_coef * (cellRUpdated[cellC_2] + cellRUpdated[cellC_1]);
+                    R_cut_force = R_cut_coef_force * (cellRUpdated[cellC_2] + cellRUpdated[cellC_1]);
 
                     if (distance < R_eq )
                     {
@@ -821,6 +854,13 @@ int main()
                         F = typeTypeF_abs_max[cellType_1][cellType_2] * (distance - R_eq) / (R_cut_force - R_eq);
                     }
                     
+                    // // debug
+                    // if (abs(F)>3000)
+                    // {
+                    //     debug_var = 3;
+                    // }
+                    // // debug
+
                     FaddTermX =  F * (delta_x / distance);
                     FaddTermY =  F * (delta_y / distance);
 
@@ -834,11 +874,20 @@ int main()
 
             } // the end of "for (cellC_2 = cellC_1 + 1 ; cellC_2 < NCells; cellC_2++)"
 
+            
 
             // Here, the V(t+dt) for cellC_1 is calculated
             cellVx[cellC_1] =   cellFx[cellC_1]  / typeGamma[cellType_1] ;
             cellVy[cellC_1] =   cellFy[cellC_1]  / typeGamma[cellType_1] ;
             // Here, the V(t+dt) for cellC_1 is calculated
+
+            // // debug
+            // if (abs(cellVx[cellC_1])>700)
+            // {
+            //     debug_var = 3;
+            // }
+            // // debug
+
 
         } // the end of "for (cellC_1 = 0; cellC_1 < NCells; cellC_1++)"
         // These two for loops are for calculating center-to-center force terms
@@ -1015,6 +1064,15 @@ int main()
 
         NCells += newBornCells;
 
+        if (NCells >= N_UpperLim)
+        {
+            cout<<"############################\n";
+            cout<<"Error! NCells >= N_UpperLim;\n";
+            cout<<"############################";
+            return 0;
+        }
+        
+
         
         ///// Sampling operation //////
         if ((t-tLastSampling) > dt_sample - t_eps)
@@ -1028,6 +1086,7 @@ int main()
             cellVxBunch.push_back(cellVx);
             cellVyBunch.push_back(cellVy);
             cellPhiBunch.push_back(cellPhi);
+            cellStateBunch.push_back(cellState);
             cellRBunch.push_back(cellR);
             cellFitnessBunch.push_back(cellFitness);
 
@@ -1044,10 +1103,12 @@ int main()
                                 cellVxBunch, \
                                 cellVyBunch, \
                                 cellPhiBunch, \
-                                cellFitnessBunch, 
+                                cellStateBunch, \
+                                cellFitnessBunch, \
                                 saved_bunch_index);
 
-                
+                cout<<"t = "<<t<<endl;
+
                 saved_bunch_index++;
 
                 tBunch.clear();
@@ -1057,6 +1118,7 @@ int main()
                 cellVxBunch.clear();
                 cellVyBunch.clear();
                 cellPhiBunch.clear();
+                cellStateBunch.clear();
                 cellRBunch.clear();
                 cellFitnessBunch.clear();
 
@@ -1574,7 +1636,8 @@ void initializer(const int N_UpperLim, int* NCellsPtr, vector<int>& NCellsPerTyp
     double dh = 0.001 * R_tot;
     double a = 0.0;
     
-    while (a < A_tot_sq[1])
+    // while (a < A_tot_sq[1])
+    while (a < A_tot[1])
     {
         a = R_tot * R_tot * acos(h/R_tot) - h * pow(R_tot * R_tot - h * h , 0.5);
         h = h - dh;
@@ -2014,6 +2077,7 @@ void dataBunchWriter(const int NCells, \
                      const vector<vector<double>> cellVxBunch, \
                      const vector<vector<double>> cellVyBunch, \
                      const vector<vector<double>> cellPhiBunch, \
+                     const vector<vector<int>> cellStateBunch, \
                      const vector<vector<vector<double>>> cellFitnessBunch, \
                      const int saved_bunch_index)
 {
@@ -2022,14 +2086,14 @@ void dataBunchWriter(const int NCells, \
 
     int bunchLength = cellTypeBunch.size();
 
-    writeDoubleVectorToFile(tBunch, NCells, "data/t_"+ to_string(saved_bunch_index) + ".txt");
+    writeDoubleVectorToFile(tBunch, bunchLength, "data/t_"+ to_string(saved_bunch_index) + ".txt");
     writeIntMatrixToFile(IntTranspose(cellTypeBunch), NCells, cellTypeBunch.size(), "data/Type_"+ to_string(saved_bunch_index) + ".txt");
     writeDoubleMatrixToFile(DoubleTranspose(cellXBunch), NCells, cellXBunch.size(), "data/X_"+ to_string(saved_bunch_index) + ".txt");
     writeDoubleMatrixToFile(DoubleTranspose(cellYBunch), NCells, cellYBunch.size(), "data/Y_"+ to_string(saved_bunch_index) + ".txt");
     writeDoubleMatrixToFile(DoubleTranspose(cellVxBunch), NCells, cellVxBunch.size(), "data/Vx_"+ to_string(saved_bunch_index) + ".txt");
     writeDoubleMatrixToFile(DoubleTranspose(cellVyBunch), NCells, cellVyBunch.size(), "data/Vy_"+ to_string(saved_bunch_index) + ".txt");
     writeDoubleMatrixToFile(DoubleTranspose(cellPhiBunch), NCells, cellPhiBunch.size(), "data/Phi_"+ to_string(saved_bunch_index) + ".txt");
-    Check_this_carefully:
+    writeIntMatrixToFile(IntTranspose(cellStateBunch), NCells, cellStateBunch.size(), "data/State_"+ to_string(saved_bunch_index) + ".txt");
     writeFitnessToFile(cellFitnessBunch, NCells, bunchLength, "data/Fit_"+ to_string(saved_bunch_index) + ".txt");
     
 
