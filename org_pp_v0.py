@@ -171,6 +171,68 @@ def read_custom_csv(filename):
         'initConfig': initConfig
     }
 
+def stats_plotter(fileName):
+    
+    plt.figure()
+    
+    plt.plot(time, alive_stat, label='tot')
+    plt.plot(time, C_stat, label='Ca', color='g')
+    plt.plot(time, WT_alive_stat, label='WT', color='m')
+    plt.plot(time, WT_cyc_stat, label='WT_cyc', linestyle='dashed')
+    plt.plot(time, WT_g1_cyc_stat, label='WT_g1_cyc', linestyle='dashed')
+    plt.plot(time, WT_g1_arr_stat, label='WT_g1_arr', linestyle='dashed')
+    plt.plot(time, WT_g1_tot_stat, label='WT_g1_tot', linestyle='dashed')
+    plt.plot(time, WT_g0_stat, label='WT_g0', linestyle='dashed')
+    plt.plot(time, WT_diff_stat, label='WT_diff', linestyle='dashed')
+    plt.plot(time, WT_apop_stat, label='WT_apop')
+    
+    plt.xlabel("time (h)")
+    plt.ylabel("Number")
+    plt.legend(loc="upper left", bbox_to_anchor=(1, 1))
+    plt.yscale("log")
+    plt.grid()
+    plt.tight_layout()
+    plt.savefig(fileName+".PNG", dpi=200)
+    # plt.close()
+    
+    plt.figure()
+    
+    plt.plot(time, alive_stat/alive_stat[0], label='tot')
+    plt.plot(time, C_stat/C_stat[0], label='Ca', color='g')
+    plt.plot(time, WT_alive_stat/WT_alive_stat[0], label='WT', color='m')
+    # plt.plot(time, WT_cyc_stat/WT_cyc_stat[0], label='WT_cyc', linestyle='dashed')
+    # plt.plot(time, WT_g1_cyc_stat/WT_g1_cyc_stat[0], label='WT_g1_cyc', linestyle='dashed')
+    # plt.plot(time, WT_g1_arr_stat/WT_g1_arr_stat[0], label='WT_g1_arr', linestyle='dashed')
+    # plt.plot(time, WT_g1_tot_stat, label='WT_g1_tot', linestyle='dashed')
+    # plt.plot(time, WT_g0_stat, label='WT_g0', linestyle='dashed')
+    # plt.plot(time, WT_diff_stat, label='WT_diff', linestyle='dashed')
+    # plt.plot(time, WT_apop_stat, label='WT_apop', linestyle='dashed')
+    
+    plt.xlabel("time (h)")
+    plt.ylabel("Normalized Number")
+    plt.legend(loc="upper left", bbox_to_anchor=(1, 1))
+    plt.yscale("log")
+    plt.grid()
+    plt.tight_layout()
+    plt.savefig(fileName+"_norm.PNG", dpi=200)
+    # plt.close()
+    
+    plt.figure()
+    plt.plot(time, WT_g1_tot_stat/WT_alive_stat, label='g1_frac')
+    plt.plot(time, WT_g0_stat/WT_alive_stat, label='g0_frac')
+    plt.plot(time, WT_diff_stat/WT_alive_stat, label='diff_frac')
+    
+    plt.xlabel("time (h)")
+    plt.ylabel("fractions")
+    plt.legend(loc="upper left", bbox_to_anchor=(1, 1))
+    # plt.yscale("log")
+    plt.grid()
+    plt.tight_layout()
+    plt.savefig(fileName+"_fracs.PNG", dpi=200)
+    # plt.close()
+    
+    
+    return 0
 
 def plotter(t, snapshotInd):
     # size_vec = np.zeros(N_sph_tot)
@@ -219,6 +281,10 @@ def plotter(t, snapshotInd):
         # circle = patches.Circle((cellX[i], cellY[i]), radius=cellR[i], edgecolor='k', facecolor='g'*(cellType[i]) + 'violet'*(1-cellType[i]), alpha=0.8)
         # ax1.add_patch(circle)
         
+        if cellState[i]==APOP_STATE:
+            continue
+        
+        
         if cellType[i] == 1:
             # normalized_fitness = normC(cellFitness[i][0])
             normalized_fitness = normC(0.5* ( cellFitness[i][0] + C_fitness_max))
@@ -266,7 +332,7 @@ def plotter(t, snapshotInd):
     
     # ax1.set_ylabel('Y-axis')
     
-    plt.savefig(file_name, dpi=100)
+    plt.savefig(file_name, dpi=150)
     # plt.show()
     plt.close()
     
@@ -287,13 +353,24 @@ cellX = np.loadtxt('init/X_init.txt', delimiter=',')
 cellY = np.loadtxt('init/Y_init.txt', delimiter=',')
 cellPhi = np.loadtxt('init/Phi_init.txt', delimiter=',')
 cellType = np.loadtxt('init/Type_init.txt', delimiter=',', dtype=int)
+cellState = np.loadtxt('init/State_init.txt', delimiter=',', dtype=int)
 cellFitness = np.loadtxt('init/Fit_init.txt', delimiter=',', dtype=float)
 NCells = len(cellX)
 
 A_min_types = np.zeros(variables['NTypes'])
 A_max_types = np.zeros(variables['NTypes'])
 
-num_stat = np.zeros((, 1+variables['samplesPerWrite']))
+alive_stat = np.zeros(1+variables['samplesPerWrite'], dtype=int)
+C_stat = np.zeros(1+variables['samplesPerWrite'], dtype=int)
+WT_alive_stat = np.zeros(1+variables['samplesPerWrite'], dtype=int)
+WT_cyc_stat = np.zeros(1+variables['samplesPerWrite'], dtype=int)
+WT_g1_cyc_stat = np.zeros(1+variables['samplesPerWrite'], dtype=int)
+WT_g1_arr_stat = np.zeros(1+variables['samplesPerWrite'], dtype=int)
+WT_g1_tot_stat = np.zeros(1+variables['samplesPerWrite'], dtype=int)
+WT_g0_stat = np.zeros(1+variables['samplesPerWrite'], dtype=int)
+WT_diff_stat = np.zeros(1+variables['samplesPerWrite'], dtype=int)
+WT_apop_stat = np.zeros(1+variables['samplesPerWrite'], dtype=int)
+
 
 
 for typeC in range(variables['NTypes']):
@@ -304,23 +381,48 @@ for typeC in range(variables['NTypes']):
     A_min_types[typeC] = np.pi*r0**2
     A_max_types[typeC] = np.pi*r2PI**2
     
+    
 cellR = 0.0 * cellPhi
 for cellC in range(NCells):
     cellType_val = cellType[cellC]
     # r0   = variables['typeR0'][cellType_val]
     # r2PI = variables['typeR2PI'][cellType_val]
-    
     # A_min = np.pi*r0**2
     # A_max = np.pi*r2PI**2
-    
     area_val = A_min_types[cellType_val] + (A_max_types[cellType_val] - A_min_types[cellType_val]) * cellPhi[cellC] / (2 * np.pi)
-    
     cellR[cellC] = (area_val / np.pi)**0.5
     
     
+    
+    # WT_alive_stat = np.zeros(1+variables['samplesPerWrite'])
+    # WT_cyc_stat = np.zeros(1+variables['samplesPerWrite'])
+    # WT_g1_cyc_stat = np.zeros(1+variables['samplesPerWrite'])
+    # WT_g1_arr_stat = np.zeros(1+variables['samplesPerWrite'])
+    WT_g1_tot_stat = np.zeros(1+variables['samplesPerWrite'])
+    # WT_g0_stat = np.zeros(1+variables['samplesPerWrite'])
+    # WT_diff_stat = np.zeros(1+variables['samplesPerWrite'])
+    # WT_apop_stat = np.zeros(1+variables['samplesPerWrite'])
 
-Cancer = np.array([np.sum(cellType)])
-WT = np.array([NCells - np.sum(cellType)])
+C_stat[0] = np.sum(cellType)
+WT_apop_stat[0] = len(cellState[cellState==APOP_STATE])
+WT_alive_stat[0] = (NCells - C_stat[0])-WT_apop_stat[0]
+alive_stat[0] = C_stat[0] + WT_alive_stat[0]
+WT_diff_stat[0] = len(cellState[cellState==DIFF_STATE])
+WT_g0_stat[0] = len(cellState[cellState==G0_STATE])
+WT_g1_arr_stat[0] = len(cellState[cellState==G1_ARR_STATE])
+WT_cyc_stat[0] = len(cellState[cellState==CYCLING_STATE]) - C_stat[0]
+WT_g1_cyc_stat[0] = len(cellState[(cellType==WT_CELL_TYPE) & (cellState==CYCLING_STATE) & (cellPhi<=2.0*np.pi*variables['G1Border'])])
+WT_g1_tot_stat[0] = WT_g1_cyc_stat[0] + WT_g1_arr_stat[0]
+
+
+
+
+
+# Cancer = np.array([np.sum(cellType)])
+# WT = np.array([NCells - np.sum(cellType)])
+
+
+
 time = np.array([0])
 
 snapshotInd = 0
@@ -345,9 +447,23 @@ while(1):
         X_bunch = np.loadtxt('data/X_'+str(bunchInd)+'.txt', delimiter=',')
         Y_bunch = np.loadtxt('data/Y_'+str(bunchInd)+'.txt', delimiter=',')
         type_bunch = np.loadtxt('data/Type_'+str(bunchInd)+'.txt', delimiter=',', dtype=int)
+        state_bunch = np.loadtxt('data/State_'+str(bunchInd)+'.txt', delimiter=',', dtype=int)
         Phi_bunch = np.loadtxt('data/Phi_'+str(bunchInd)+'.txt', delimiter=',')
         fitness_bunch = np.loadtxt('data/Fit_'+str(bunchInd)+'.txt', delimiter=',')
         
+        if bunchInd > 1:
+            zeros_to_append = np.zeros(variables['samplesPerWrite'], dtype=int)
+            
+            alive_stat = np.append(alive_stat, zeros_to_append.copy())
+            C_stat =     np.append(C_stat, zeros_to_append.copy())
+            WT_alive_stat = np.append(WT_alive_stat, zeros_to_append.copy())
+            WT_cyc_stat = np.append(WT_cyc_stat, zeros_to_append.copy())
+            WT_g1_cyc_stat = np.append(WT_g1_cyc_stat, zeros_to_append.copy())
+            WT_g1_arr_stat = np.append(WT_g1_arr_stat, zeros_to_append.copy())
+            WT_g1_tot_stat = np.append(WT_g1_tot_stat, zeros_to_append.copy())
+            WT_g0_stat = np.append(WT_g0_stat, zeros_to_append.copy())
+            WT_diff_stat = np.append(WT_diff_stat, zeros_to_append.copy())
+            WT_apop_stat = np.append(WT_apop_stat, zeros_to_append.copy())
         # try:
         #     cellX = np.loadtxt('data/X_'+str(ind)+'.txt', delimiter=',')
         #     cellY = np.loadtxt('data/Y_'+str(ind)+'.txt', delimiter=',')
@@ -364,6 +480,7 @@ while(1):
             cellX = X_bunch[:NCells, sampleC]
             cellY = Y_bunch[:NCells, sampleC]
             cellPhi = Phi_bunch[:NCells, sampleC]
+            cellState = state_bunch[:NCells, sampleC]
             cellFitness = fitness_bunch[:NCells, 2*sampleC:2*sampleC+2]
             
             cellR = 0.0 * cellPhi
@@ -371,22 +488,31 @@ while(1):
                 cellType_val = cellType[cellC]
                 # r0   = variables['typeR0'][cellType_val]
                 # r2PI = variables['typeR2PI'][cellType_val]
-                
                 # A_min = np.pi*r0**2
                 # A_max = np.pi*r2PI**2
-                
                 # area_val = A_min + (A_max - A_min) * cellPhi[cellC] / (2 * np.pi)
                 area_val = A_min_types[cellType_val] + (A_max_types[cellType_val] - A_min_types[cellType_val]) * cellPhi[cellC] / (2 * np.pi)
-                
                 cellR[cellC] = (area_val / np.pi)**0.5
             
             
-            Cancer = np.append(Cancer, np.sum(cellType))
-            WT = np.append(WT, NCells - np.sum(cellType))
+            # Cancer = np.append(Cancer, np.sum(cellType))
+            # WT = np.append(WT, NCells - np.sum(cellType))
+            
+            C_stat[snapshotInd] = np.sum(cellType)
+            WT_apop_stat[snapshotInd] = len(cellState[cellState==APOP_STATE])
+            WT_alive_stat[snapshotInd] = (NCells - C_stat[snapshotInd])-WT_apop_stat[snapshotInd]
+            alive_stat[snapshotInd] = C_stat[snapshotInd] + WT_alive_stat[snapshotInd]
+            WT_diff_stat[snapshotInd] = len(cellState[cellState==DIFF_STATE])
+            WT_g0_stat[snapshotInd] = len(cellState[cellState==G0_STATE])
+            WT_g1_arr_stat[snapshotInd] = len(cellState[cellState==G1_ARR_STATE])
+            WT_cyc_stat[snapshotInd] = len(cellState[cellState==CYCLING_STATE]) - C_stat[snapshotInd]
+            WT_g1_cyc_stat[snapshotInd] = len(cellState[(cellType==WT_CELL_TYPE) & (cellState==CYCLING_STATE) & (cellPhi<=2.0*np.pi*variables['G1Border'])])
+            WT_g1_tot_stat[snapshotInd] = WT_g1_cyc_stat[snapshotInd] + WT_g1_arr_stat[snapshotInd]
+            
             time = np.append(time, t)
 
 
-            plotter(t, snapshotInd)
+            # plotter(t, snapshotInd)
             snapshotInd += 1
             # t += dt
             print(t)
@@ -396,5 +522,16 @@ while(1):
     except:
         break
 
+np.savetxt("pp_data"+"/"+"time.txt", time, fmt='%.4f')
+np.savetxt("pp_data"+"/"+"alive_stat.txt", alive_stat, fmt='%d')
+np.savetxt("pp_data"+"/"+"C_stat.txt", C_stat, fmt='%d')
+np.savetxt("pp_data"+"/"+"WT_alive_stat.txt", WT_alive_stat, fmt='%d')
+np.savetxt("pp_data"+"/"+"WT_cyc_stat.txt", WT_cyc_stat, fmt='%d')
+np.savetxt("pp_data"+"/"+"WT_g1_cyc_stat.txt", WT_g1_cyc_stat, fmt='%d')
+np.savetxt("pp_data"+"/"+"WT_g1_arr_stat.txt", WT_g1_arr_stat, fmt='%d')
+np.savetxt("pp_data"+"/"+"WT_g1_tot_stat.txt", WT_g1_tot_stat, fmt='%d')
+np.savetxt("pp_data"+"/"+"WT_g0_stat.txt", WT_g0_stat, fmt='%d')
+np.savetxt("pp_data"+"/"+"WT_diff_stat.txt", WT_diff_stat, fmt='%d')
+np.savetxt("pp_data"+"/"+"WT_apop_stat.txt", WT_apop_stat, fmt='%d')
 
-
+stats_plotter("statistics")

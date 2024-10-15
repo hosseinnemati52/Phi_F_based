@@ -231,9 +231,13 @@ def plotter(t, snapshotInd):
             # normalized_fitness = normWT(cellFitness[i][0])
             normalized_fitness = normWT(0.5* ( cellFitness[i][0] +  WT_fitness_max))
             color = cm.Purples(normalized_fitness) 
-
-        circle = patches.Circle((cellX[i], cellY[i]), radius=cellR[i], edgecolor='k', facecolor=color, alpha=0.8)
-        ax1.add_patch(circle)
+        
+        if cellState[i]==DIFF_STATE or cellState[i]==G0_STATE:
+            polgon = patches.RegularPolygon((cellX[i], cellY[i]),numVertices=5, radius=cellR[i], edgecolor='k', facecolor=color, alpha=0.8)
+            ax1.add_patch(polgon)
+        else:
+            circle = patches.Circle((cellX[i], cellY[i]), radius=cellR[i], edgecolor='k', facecolor=color, alpha=0.8)
+            ax1.add_patch(circle)
     # plt.scatter(x_sph, y_sph, s=size_vec, c=cell_sph, alpha=1, cmap='viridis')
     ax1.axis("equal")
     # plt.xlim((0,Lx))
@@ -383,7 +387,9 @@ while(1):
             
             
             Cancer = np.append(Cancer, np.sum(cellType))
-            WT = np.append(WT, NCells - np.sum(cellType))
+            # WT = np.append(WT, NCells - np.sum(cellType))
+            WT = np.append(WT, NCells - np.sum(cellType)-len(cellState[cellState==APOP_STATE]))
+            
             time = np.append(time, t)
 
 
