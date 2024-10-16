@@ -470,7 +470,7 @@ int main()
     {
 
     std::ofstream errorFile("error.log");
-    std::cerr << "Error: the 'gen' mode not allowed!" << std::endl;
+    errorFile << "Error: the 'gen' mode not allowed!" << std::endl;
     errorFile.close();
 
     return 1;

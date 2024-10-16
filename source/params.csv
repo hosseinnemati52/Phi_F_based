@@ -1,5 +1,5 @@
 ############### GENERAL ##############
-N_UpperLim = 30000
+N_UpperLim = 5000
 NTypes = 2
 typeR0   = [0.5, 0.5]
 typeR2PI = [0.705, 0.705]
@@ -33,7 +33,7 @@ Fit_Th_Apop = 0.1
 ############### THRESHOLD FITNESSES ##############
 
 ############### TIMING & SAMPLING ##############
-maxTime = 20.1
+maxTime = 50.1
 dt = 0.001
 dt_sample = 0.2
 samplesPerWrite = 50
@@ -43,7 +43,7 @@ printingTimeInterval = 1.0
 
 ############### GAME ##############
 R_cut_coef_game = 1.1
-typeGameNoiseSigma = [0.001, 0.002]
+typeGameNoiseSigma = [0.05, 0.08]
 tau = 10
 typeTypePayOff_mat_real_C = [[0.000, -0.02];[0.02, 0.00]]
 typeTypePayOff_mat_real_F1 = [[-0.2, 0.0];[0.0, -0.2]]
