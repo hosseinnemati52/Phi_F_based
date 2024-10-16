@@ -1,6 +1,14 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
+Created on Wed Oct 16 17:09:51 2024
+
+@author: hossein
+"""
+
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
 Created on Tue Jul 30 09:22:25 2024
 
 @author: hossein
@@ -226,6 +234,7 @@ def stats_plotter(fileName):
     plt.plot(time, WT_diff_stat, label='WT_diff', linestyle='dashed')
     plt.plot(time, WT_diff_stat+WT_g0_stat, label='WT_g0_diff', linestyle='dashed')
     plt.plot(time, WT_apop_stat, label='WT_apop')
+    plt.plot(time, WT_sg2m_stat, label='WT_sg2m', linestyle='dashed')
     
     plt.xlabel("time (h)")
     plt.ylabel("Number")
@@ -263,6 +272,7 @@ def stats_plotter(fileName):
     # plt.plot(time, WT_g0_stat/WT_alive_stat, label='g0_frac')
     # plt.plot(time, WT_diff_stat/WT_alive_stat, label='diff_frac')
     plt.plot(time, (WT_g0_stat+WT_diff_stat)/WT_alive_stat, label='g0_diff_frac')
+    plt.plot(time, (WT_sg2m_stat)/WT_alive_stat, label='sg2m_frac')
     
     plt.xlabel("time (h)")
     plt.ylabel("fractions")
@@ -423,6 +433,7 @@ WT_cyc_stat = np.zeros(1+variables['samplesPerWrite'], dtype=int)
 WT_g1_cyc_stat = np.zeros(1+variables['samplesPerWrite'], dtype=int)
 WT_g1_arr_stat = np.zeros(1+variables['samplesPerWrite'], dtype=int)
 WT_g1_tot_stat = np.zeros(1+variables['samplesPerWrite'], dtype=int)
+WT_sg2m_stat =   np.zeros(1+variables['samplesPerWrite'], dtype=int)
 WT_g0_stat = np.zeros(1+variables['samplesPerWrite'], dtype=int)
 WT_diff_stat = np.zeros(1+variables['samplesPerWrite'], dtype=int)
 WT_apop_stat = np.zeros(1+variables['samplesPerWrite'], dtype=int)
@@ -470,6 +481,7 @@ WT_g1_arr_stat[0] = len(cellState[cellState==G1_ARR_STATE])
 WT_cyc_stat[0] =    len(cellType[(cellType==WT_CELL_TYPE) & (cellState==CYCLING_STATE)])
 WT_g1_cyc_stat[0] = len(cellState[(cellType==WT_CELL_TYPE) & (cellState==CYCLING_STATE) & (cellPhi<=2.0*np.pi*variables['G1Border'])])
 WT_g1_tot_stat[0] = WT_g1_cyc_stat[0] + WT_g1_arr_stat[0]
+WT_sg2m_stat[0] = len(cellState[(cellType==WT_CELL_TYPE) & (cellState==CYCLING_STATE) & (cellPhi>2.0*np.pi*variables['G1Border'])])
 
 
 
@@ -523,6 +535,7 @@ while(1):
             WT_g0_stat = np.append(WT_g0_stat, zeros_to_append.copy())
             WT_diff_stat = np.append(WT_diff_stat, zeros_to_append.copy())
             WT_apop_stat = np.append(WT_apop_stat, zeros_to_append.copy())
+            WT_sg2m_stat = np.append(WT_sg2m_stat, zeros_to_append.copy())
         # try:
         #     cellX = np.loadtxt('data/X_'+str(ind)+'.txt', delimiter=',')
         #     cellY = np.loadtxt('data/Y_'+str(ind)+'.txt', delimiter=',')
@@ -568,6 +581,7 @@ while(1):
             WT_cyc_stat[snapshotInd] =    len(cellType[(cellType==WT_CELL_TYPE) & (cellState==CYCLING_STATE)])
             WT_g1_cyc_stat[snapshotInd] = len(cellState[(cellType==WT_CELL_TYPE) & (cellState==CYCLING_STATE) & (cellPhi<=2.0*np.pi*variables['G1Border'])])
             WT_g1_tot_stat[snapshotInd] = WT_g1_cyc_stat[snapshotInd] + WT_g1_arr_stat[snapshotInd]
+            WT_sg2m_stat[snapshotInd] =   len(cellState[(cellType==WT_CELL_TYPE) & (cellState==CYCLING_STATE) & (cellPhi>2.0*np.pi*variables['G1Border'])])
             
             time = np.append(time, t)
 
@@ -595,5 +609,6 @@ np.savetxt("pp_data"+"/"+"WT_g1_tot_stat.txt", WT_g1_tot_stat, fmt='%d')
 np.savetxt("pp_data"+"/"+"WT_g0_stat.txt", WT_g0_stat, fmt='%d')
 np.savetxt("pp_data"+"/"+"WT_diff_stat.txt", WT_diff_stat, fmt='%d')
 np.savetxt("pp_data"+"/"+"WT_apop_stat.txt", WT_apop_stat, fmt='%d')
+np.savetxt("pp_data"+"/"+"WT_sg2m_stat.txt", WT_sg2m_stat, fmt='%d')
 
 stats_plotter("statistics")

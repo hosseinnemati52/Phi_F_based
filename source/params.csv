@@ -26,24 +26,24 @@ G1Border = 0.45
 
 ############### THRESHOLD FITNESSES ##############
 typeFit0 = [0.26, 0.3]
-Fit_Th_G1_arr = 0.2
-Fit_Th_G0 = 0.18
-Fit_Th_Diff = 0.14
-Fit_Th_Apop = 0.1
+Fit_Th_G1_arr = 0.22
+Fit_Th_G0 = 0.16
+Fit_Th_Diff = 0.12
+Fit_Th_Apop = 0.08
 ############### THRESHOLD FITNESSES ##############
 
 ############### TIMING & SAMPLING ##############
-maxTime = 50.1
+maxTime = 70.1
 dt = 0.001
-dt_sample = 0.2
-samplesPerWrite = 50
+dt_sample = 0.5
+samplesPerWrite = 20
 writePerZip = 10
 printingTimeInterval = 1.0
 ############### TIMING & SAMPLING ##############
 
 ############### GAME ##############
 R_cut_coef_game = 1.1
-typeGameNoiseSigma = [0.05, 0.08]
+typeGameNoiseSigma = [0.04, 0.08]
 tau = 10
 typeTypePayOff_mat_real_C = [[0.000, -0.02];[0.02, 0.00]]
 typeTypePayOff_mat_real_F1 = [[-0.2, 0.0];[0.0, -0.2]]

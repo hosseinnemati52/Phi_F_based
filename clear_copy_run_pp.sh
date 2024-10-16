@@ -1,21 +1,29 @@
 declare -i N=10
 
-
+#
 for i in $(seq 1 $N); do
-
 	mkdir -p "run_$i"
-    
+done
+#
+#
+for i in $(seq 1 $N); do
     	# Clear the folder contents
     	rm -rf "run_$i"/*
-
+done
+#
+#
+for i in $(seq 1 $N); do
     	# Copy all contents from source into the run_$i folder
     	cp -r source/* "run_$i"
-    	
+done
+#
+#
+for i in $(seq 1 $N); do
 	cd "run_$i"
 	./do_all.sh
 	cd ..
 done
-
+#
 python3 org_pp_over_runs.py
 
 

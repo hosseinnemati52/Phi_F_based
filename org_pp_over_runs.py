@@ -404,7 +404,8 @@ def overal_plotter(exp_data_load_switch, save_switch):
                     WT_g0_diff_stat_overal,
                     WT_g1_arr_stat_overal,
                     WT_g1_cyc_stat_overal,
-                    WT_g1_tot_stat_overal]
+                    WT_g1_tot_stat_overal,
+                    WT_sg2m_stat_overal]
     
     labels_of_data = ['tot', 
                       'C', 
@@ -415,7 +416,8 @@ def overal_plotter(exp_data_load_switch, save_switch):
                       'WT_g0_diff',
                       'WT_g1_arr',
                       'WT_g1_cyc',
-                      'WT_g1_tot']
+                      'WT_g1_tot',
+                      'WT_sg2m']
     
     plt.figure()
     
@@ -507,11 +509,13 @@ def overal_plotter(exp_data_load_switch, save_switch):
     ### fractions
     list_of_data.clear()
     list_of_data = [WT_g1_tot_stat_overal, 
-                    WT_g0_diff_stat_overal]
+                    WT_g0_diff_stat_overal,
+                    WT_sg2m_stat_overal]
     
     labels_of_data.clear()
     labels_of_data = ['frac_WT_g1', 
-                      'frac_WT_g0_diff']
+                      'frac_WT_g0_diff',
+                      'frac_WT_sg2m']
     
     plt.figure()
     
@@ -604,6 +608,7 @@ WT_g0_stat_overal = np.zeros((N_runs, N_samples), dtype=float)
 WT_g1_arr_stat_overal = np.zeros((N_runs, N_samples), dtype=float)
 WT_g1_cyc_stat_overal = np.zeros((N_runs, N_samples), dtype=float)
 WT_g1_tot_stat_overal = np.zeros((N_runs, N_samples), dtype=float)
+WT_sg2m_stat_overal = np.zeros((N_runs, N_samples), dtype=float)
 
 WT_g0_diff_stat_overal = np.zeros((N_runs, N_samples), dtype=float)
 
@@ -623,6 +628,7 @@ for runC in range(N_runs):
     WT_g1_arr_stat = np.loadtxt(folderName+"/pp_data/WT_g1_arr_stat.txt", delimiter=',', dtype=int)
     WT_g1_cyc_stat = np.loadtxt(folderName+"/pp_data/WT_g1_cyc_stat.txt", delimiter=',', dtype=int)
     WT_g1_tot_stat = np.loadtxt(folderName+"/pp_data/WT_g1_tot_stat.txt", delimiter=',', dtype=int)
+    WT_sg2m_stat = np.loadtxt(folderName+"/pp_data/WT_sg2m_stat.txt", delimiter=',', dtype=int)
     
     
     alive_stat_overal[runC, :] = alive_stat.copy()
@@ -638,6 +644,7 @@ for runC in range(N_runs):
     WT_g1_arr_stat_overal[runC, :] = WT_g1_arr_stat.copy()
     WT_g1_cyc_stat_overal[runC, :] = WT_g1_cyc_stat.copy()
     WT_g1_tot_stat_overal[runC, :] = WT_g1_tot_stat.copy()
+    WT_sg2m_stat_overal[runC, :] = WT_sg2m_stat.copy()
     
     WT_g0_diff_stat_overal[runC, :] = WT_g0_stat.copy() + WT_diff_stat.copy()
     
