@@ -26,10 +26,10 @@ G1Border = 0.45
 
 ############### THRESHOLD FITNESSES ##############
 typeFit0 = [0.26, 0.3]
-Fit_Th_G1_arr = 0.22
+Fit_Th_G1_arr = 0.25
 Fit_Th_G0 = 0.16
 Fit_Th_Diff = 0.12
-Fit_Th_Apop = 0.08
+Fit_Th_Apop = 0.09
 ############### THRESHOLD FITNESSES ##############
 
 ############### TIMING & SAMPLING ##############
