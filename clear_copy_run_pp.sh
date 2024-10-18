@@ -1,4 +1,4 @@
-declare -i N=10
+declare -i N=20
 
 #
 for i in $(seq 1 $N); do

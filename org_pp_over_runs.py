@@ -441,7 +441,12 @@ def overal_plotter(exp_data_load_switch, save_switch):
         
     
     # if exp_data_load_switch:
-    #     x, y, y_err = exp_data_loader()
+    #     # x, y, y_err = exp_data_loader()
+    #     exp_array = np.loadtxt("exp_data"+"/"+"overal_WT_pure.csv", delimiter=',')
+        
+    #     x = exp_array[0,:]
+    #     y = exp_array[1,:]
+    #     y_err = exp_array[2,:]
         
     #     plt.scatter(x, y, label='exp')
     #     plt.errorbar(x, y, yerr=y_err)
@@ -494,6 +499,27 @@ def overal_plotter(exp_data_load_switch, save_switch):
         save_array[2,:] = y_err
         np.savetxt("overal_pp"+"/"+data_label+"_ov_pl"+".txt", save_array, fmt='%.4f', delimiter=',')
     
+    if exp_data_load_switch:
+        # x, y, y_err = exp_data_loader()
+        exp_array = np.loadtxt("exp_data"+"/"+"C_bar_mix_overal.csv", delimiter=',')
+        
+        x = exp_array[0,:]
+        y = exp_array[1,:]
+        y_err = exp_array[2,:]
+        
+        plt.scatter(x, y, label='exp_C')
+        plt.errorbar(x, y, yerr=y_err, fmt='o')
+        
+        exp_array = np.loadtxt("exp_data"+"/"+"WT_bar_mix_overal.csv", delimiter=',')
+        
+        x = exp_array[0,:]
+        y = exp_array[1,:]
+        y_err = exp_array[2,:]
+        
+        plt.scatter(x, y, label='exp_WT')
+        plt.errorbar(x, y, yerr=y_err, fmt='o')
+        
+        
     plt.xlabel('time(h)')
     plt.ylabel('Normalized Number')
     plt.grid()
@@ -591,7 +617,7 @@ def overal_saver():
     
     return
 
-N_runs = 10
+N_runs = 20
 time = np.loadtxt("run_1/pp_data/time.txt", delimiter=',', dtype=float)
 N_samples = len(time)
 
@@ -652,7 +678,7 @@ for runC in range(N_runs):
     
 
 ## overal plot
-exp_data_load_switch = 0
+exp_data_load_switch = 1
 save_switch = 1
 overal_plotter(exp_data_load_switch, save_switch)
 ## overal plot
